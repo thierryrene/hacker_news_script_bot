@@ -25,6 +25,18 @@ body {
   color: var(--text-main);
   overflow-x: hidden;
   line-height: 1.6;
+  position: relative;
+}
+
+body::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 50px 50px;
+  z-index: -2;
 }
 
 /* Glass Navbar */
@@ -114,25 +126,26 @@ nav a:hover {
 }
 
 .btn-telegram {
-  background: #24A1DE;
-  color: white;
+  background: #e2e8f0;
+  color: #0c0d10;
 }
 
 .btn-telegram:hover {
-  background: #1e8bb8;
+  background: white;
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(36, 161, 222, 0.3);
+  box-shadow: 0 12px 24px rgba(255, 255, 255, 0.05);
 }
 
 .btn-whatsapp {
-  background: #25D366;
+  background: transparent;
   color: white;
+  border: 1px solid rgba(255,255,255,0.15);
 }
 
 .btn-whatsapp:hover {
-  background: #1ebe5d;
+  background: rgba(255,255,255,0.03);
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px rgba(37, 211, 102, 0.3);
+  border-color: rgba(255,255,255,0.3);
 }
 
 .pulse {
