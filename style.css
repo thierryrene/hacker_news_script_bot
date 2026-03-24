@@ -54,6 +54,7 @@ body {
 .text-gradient {
   background: linear-gradient(135deg, var(--primary-orange), var(--primary-purple));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -85,14 +86,14 @@ nav a:hover {
 /* Buttons */
 .btn {
   padding: 0.85rem 1.8rem;
-  border-radius: 50px;
+  border-radius: 0;
   font-weight: 700;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
   font-size: 0.95rem;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
   cursor: pointer;
 }
 
@@ -191,11 +192,12 @@ nav a:hover {
 }
 
 .hero h1 {
-  font-size: 4.2rem;
-  font-weight: 900;
+  font-family: 'Instrument Serif', serif;
+  font-size: 4.8rem;
+  font-weight: 400;
   margin-bottom: 1.2rem;
-  letter-spacing: -2px;
-  line-height: 1.1;
+  letter-spacing: -1px;
+  line-height: 1;
 }
 
 .subtitle {
@@ -220,14 +222,14 @@ nav a:hover {
 }
 
 .glass-container {
-  background: rgba(16, 17, 22, 0.65);
+  background: rgba(16, 17, 22, 0.75);
   backdrop-filter: blur(25px);
-  border: 1px solid var(--glass-border);
-  border-radius: 18px;
-  box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid #1f1f22;
+  border-radius: 0;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.02);
   overflow: hidden;
-  transform: rotateX(12deg) rotateY(-5deg);
-  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: rotateX(12deg) rotateY(-5deg) translateZ(0);
+  transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .glass-container:hover {
@@ -259,6 +261,19 @@ nav a:hover {
   font-size: 0.85rem;
   color: var(--text-muted);
   font-weight: 500;
+}
+
+.src-label {
+  margin-left: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary-orange);
+  background: rgba(255, 92, 54, 0.05);
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba(255, 92, 54, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .mockup-body {
@@ -293,8 +308,9 @@ nav a:hover {
 }
 
 .section-header h2 {
-  font-size: 2.8rem;
-  font-weight: 900;
+  font-family: 'Instrument Serif', serif;
+  font-size: 3.2rem;
+  font-weight: 400;
   margin-bottom: 0.7rem;
 }
 
@@ -310,10 +326,10 @@ nav a:hover {
 
 .feature-card {
   background: rgba(255, 255, 255, 0.012);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 20px;
+  border: 1px solid #1f1f22;
+  border-radius: 0;
   padding: 2.5rem;
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .feature-card:hover {
@@ -325,7 +341,7 @@ nav a:hover {
 .feature-icon {
   width: 55px;
   height: 55px;
-  border-radius: 14px;
+  border-radius: 0;
   display: flex;
   justify-content: center;
   align-items: center;
