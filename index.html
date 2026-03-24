@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HN FastDigest - Resumos Inteligentes do Hacker News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-bolt-lightning text-gradient"></i>
+            <span>HN <span class="text-orange">FastDigest</span></span>
+        </div>
+        <nav>
+            <a href="#features">Recursos</a>
+            <a href="#preview">Visualização</a>
+            <a href="#start" class="btn btn-sm btn-outline">Começar</a>
+        </nav>
+    </header>
+
+    <main class="hero">
+        <div class="circle-blur bg-orange"></div>
+        <div class="circle-blur bg-purple"></div>
+        
+        <div class="hero-content">
+            <div class="badge-accent">🤖 Alimentado por IA</div>
+            <h1>O <span class="text-gradient">Hacker News</span> Sem Overload.</h1>
+            <p class="subtitle">Receba resumos diários dos posts mais quentes (>50 pts) diretamente no seu Telegram ou WhatsApp. Leituras rápidas de 30 segundos.</p>
+            
+            <div class="cta-group" id="start">
+                <a href="https://t.me/hacker_news_resumos_bot" target="_blank" class="btn btn-telegram pulse">
+                    <i class="fa-brands fa-telegram"></i> Adicionar no Telegram
+                </a>
+                <a href="#" class="btn btn-whatsapp">
+                    <i class="fa-brands fa-whatsapp"></i> Receber no WhatsApp
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-mockup" id="preview">
+            <div class="glass-container">
+                <div class="mockup-header">
+                    <div class="mockup-dots"><span></span><span></span><span></span></div>
+                    <div class="mockup-title">Telegram - @hacker_news_resumos_bot</div>
+                </div>
+                <div class="mockup-body">
+                    <div class="chat-item">
+                        <p class="chat-text">
+                            <b>📰 HACKER NEWS - TOP STORIES 🚀</b><br>
+                            ━━━━━━━━━━━━━━━━━━━━━━━━━<br><br>
+                            👑 Destaque: <b>The gold standard of optimization </b> (312 pts)<br>
+                            🔗 <span class="text-blue">Acessar link</span><br>
+                            📝 💻 O artigo aborda como Chris Sawyer construiu o RollerCoaster Tycoon quase inteiramente em Assembly. Isso possibilitou renderizar milhares de sprites simultaneamente em computadores antigos sem quedas de framerate.<br><br>
+                            🔥 Quente: <b>iPhone 17 Pro demonstrated running 400B LLM</b> (180 pts)<br>
+                            🔗 <span class="text-blue">Acessar link</span><br>
+                            📝 🧠 Engenheiros conseguiram carregar os pesos de um modelo de linguagem gigante na memória unificada do processador Bionic. A técnica utiliza compactação de tensores 4-bit para obter inferência local suave.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section class="features" id="features">
+        <div class="section-header">
+            <h2>Por que usar o FastDigest?</h2>
+            <p>Seu tempo é precioso. Nós filtramos o ruído.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon bg-gradient-orange">
+                    <i class="fa-solid fa-filter"></i>
+                </div>
+                <h3>Filtro de Elite</h3>
+                <p>Apenas conteúdos de alto impacto. Avaliamos posts com mais de 50 pontos de upvote e descartamos o resto.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-gradient-purple">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <h3>Inteligência Artificial</h3>
+                <p>Resumos densos de 2 a 4 frases gerados por IA de última geração. Sem preenchimento de linguiça.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-gradient-blue">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h3>Rotina Matinal</h3>
+                <p>Disparos automáticos às 8:00h da manhã. Comece o seu dia conectado com as maiores novidades tech.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2026 HN FastDigest. Todos os direitos reservados.</p>
+        <div class="social-links">
+            <a href="#"><i class="fa-brands fa-github"></i></a>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
