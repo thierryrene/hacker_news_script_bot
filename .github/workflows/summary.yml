@@ -31,7 +31,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-1.5-flash' }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.0-flash' }}
           EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
           EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
           EVOLUTION_API_INSTANCE: ${{ secrets.EVOLUTION_API_INSTANCE }}

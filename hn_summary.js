@@ -72,7 +72,7 @@ async function getHackerNewsTop() {
 
 async function summarizeAllWithGemini(posts) {
   try {
-    const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    const modelName = process.env.GEMINI_MODEL || 'gemini-3.0-flash';
     const model = genAI.getGenerativeModel({ model: modelName });
 
     let prompt = `Você é um sumarizador especialista de notícias tech. Recebi posts do Hacker News com o título e um trecho do seu conteúdo original. 
