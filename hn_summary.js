@@ -97,8 +97,9 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     const responseText = result.response.text().trim();
     
     const summaries = responseText.split('\n')
+      .filter(l => /^\d+[\.\)]\s*/.test(l))
       .map(l => l.replace(/^\d+[\.\)]\s*/, '').trim())
-      .filter(l => l.length > 5);
+      .filter(l => l.length > 0);
 
     return summaries;
   } catch (err) {
