@@ -127,7 +127,7 @@ async function summarizeAllWithGemini(posts) {
 Faça um resumo rico e estruturado em português para cada um deles.
 
 Sua resposta DEVE conter EXATAMENTE uma linha por post (sem quebras de linha no meio de um post), no formato abaixo:
-1. [Emoji] <b>TL;DR:</b> [1 a 2 frases com a ideia central] 💡 <b>Insight:</b> [1 a 2 frases com a consequência ou ação]
+1. [Emoji] <b>TL;DR:</b> [1 a 2 frases com a ideia central] 💡 <b>Insight:</b> [1 a 2 frases com a consequência ou ação] 🏷️ [2 a 3 hashtags curtas, ex: #AI #Dev]
 2. [Emoji] <b>TL;DR:</b> ...
 
 Lembre-se: NÃO use quebras de linha (\\n) dentro do resumo de um mesmo post. Apenas 1 linha de retorno para cada post enviado. Especialmente o formato deve manter as tags HTML corretas "<b>TL;DR:</b>".
@@ -199,8 +199,11 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     const tldrMatch = summary.match(/<b>TL;DR:<\/b>\s*(.*?)\s*💡/);
     const tldrStr = tldrMatch ? tldrMatch[1].trim() : summary.replace(/<[^>]*>?/gm, '');
 
-    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*)$/);
+    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*?)(?:🏷|#|$)/);
     const insightStr = insightMatch ? insightMatch[1].trim() : "";
+
+    const tagsMatch = summary.match(/🏷️\s*(.*)$/);
+    const tagsStr = tagsMatch ? tagsMatch[1].trim() : "";
 
     exportedArray.push({
       id: post.id,
@@ -211,7 +214,7 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
       emoji: emojiStr,
       tldr: tldrStr,
       insight: insightStr,
-      tags: ""
+      tags: tagsStr
     });
 
     
@@ -266,7 +269,36 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     }
     console.log("✅ Resumo enviado para o Telegram!");
 
+  let commentsMsg = `<b>💭 HACKER NEWS - VOZ DA COMUNIDADE</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  const commentsChunks = [];
+  
+  for(let i=0; i<posts.length; i++) {
+     const cSum = commentSummaries[i];
+     if(cSum && cSum.includes("Comunidade:")) {
+        const itemMsg = `📌 <b>${posts[i].title}</b>\n  ${cSum}\n\n`;
+        if (commentsMsg.length + itemMsg.length > 3900) {
+            commentsChunks.push(commentsMsg);
+            commentsMsg = itemMsg; // start new chunk
+        } else {
+            commentsMsg += itemMsg;
+        }
+     }
+  }
+  if (commentsMsg.trim().length > 0) commentsChunks.push(commentsMsg);
 
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID && commentsChunks.length > 0) {
+      for (const chunk of commentsChunks) {
+          try {
+            await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, chunk, {
+              parse_mode: 'HTML',
+              disable_web_page_preview: true
+            });
+          } catch(e) {
+             console.error("❌ Erro enviando comentários pro Telegram", e.message);
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+      }
+  }
 
   }
 

@@ -199,8 +199,11 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     const tldrMatch = summary.match(/<b>TL;DR:<\/b>\s*(.*?)\s*💡/);
     const tldrStr = tldrMatch ? tldrMatch[1].trim() : summary.replace(/<[^>]*>?/gm, '');
 
-    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*)$/);
+    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*?)(?:🏷|#|$)/);
     const insightStr = insightMatch ? insightMatch[1].trim() : "";
+
+    const tagsMatch = summary.match(/🏷️\s*(.*)$/);
+    const tagsStr = tagsMatch ? tagsMatch[1].trim() : "";
 
     exportedArray.push({
       id: post.id,
@@ -211,7 +214,7 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
       emoji: emojiStr,
       tldr: tldrStr,
       insight: insightStr,
-      tags: ""
+      tags: tagsStr
     });
 
     
@@ -266,7 +269,36 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     }
     console.log("✅ Resumo enviado para o Telegram!");
 
+  let commentsMsg = `<b>💭 HACKER NEWS - VOZ DA COMUNIDADE</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  const commentsChunks = [];
+  
+  for(let i=0; i<posts.length; i++) {
+     const cSum = commentSummaries[i];
+     if(cSum && cSum.includes("Comunidade:")) {
+        const itemMsg = `📌 <b>${posts[i].title}</b>\n  ${cSum}\n\n`;
+        if (commentsMsg.length + itemMsg.length > 3900) {
+            commentsChunks.push(commentsMsg);
+            commentsMsg = itemMsg; // start new chunk
+        } else {
+            commentsMsg += itemMsg;
+        }
+     }
+  }
+  if (commentsMsg.trim().length > 0) commentsChunks.push(commentsMsg);
 
+  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID && commentsChunks.length > 0) {
+      for (const chunk of commentsChunks) {
+          try {
+            await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, chunk, {
+              parse_mode: 'HTML',
+              disable_web_page_preview: true
+            });
+          } catch(e) {
+             console.error("❌ Erro enviando comentários pro Telegram", e.message);
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+      }
+  }
 
   }
 
