@@ -227,8 +227,12 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
 
     fullMsg += `${badge} <b>${post.title}</b> (${post.score} pts)\n`;
     if (post.url) fullMsg += `  🔗 <a href="${post.url}">Acessar link</a>\n`;
-    fullMsg += `  � <a href="https://news.ycombinator.com/item?id=${post.id}">Discussão (HN)</a>\n`;
-    fullMsg += `  📝 ${summary.trim()}\n\n===POST_SEPARATOR===\n\n`;
+    fullMsg += `  💬 <a href="https://news.ycombinator.com/item?id=${post.id}">Discussão (HN)</a>\n`;
+    fullMsg += `  📝 ${summary.trim()}\n`;
+    if (cleanComm) {
+      fullMsg += `  🗣️ <b>Comunidade:</b> ${cleanComm}\n`;
+    }
+    fullMsg += `\n===POST_SEPARATOR===\n\n`;
   }
 
   if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
