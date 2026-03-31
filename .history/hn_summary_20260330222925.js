@@ -4,8 +4,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import evolution from './evolution.js';
 import telegram from './telegram.js';
 import * as cheerio from 'cheerio';
-import fs from 'fs';
-import path from 'path';
 
 // Corrigir erro AggregateError no Node 20+ (preferir IPv4)
 import dns from 'node:dns';
@@ -99,9 +97,8 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     const responseText = result.response.text().trim();
     
     const summaries = responseText.split('\n')
-      .filter(l => /^\d+[\.\)]\s*/.test(l))
       .map(l => l.replace(/^\d+[\.\)]\s*/, '').trim())
-      .filter(l => l.length > 0);
+      .filter(l => l.length > 5);
 
     return summaries;
   } catch (err) {
@@ -131,37 +128,11 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
   const summaries = await summarizeAllWithGemini(posts);
 
   let fullMsg = `<b>📰 HACKER NEWS - TOP STORIES 🚀</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  const exportedArray = [];
 
   for (let i = 0; i < posts.length; i++) {
     const post = posts[i];
     const summary = summaries[i] || "Não foi possível gerar um resumo detalhado.";
     
-    // Process string para o frontend feed
-    const emojiMatch = summary.match(/^(.*?)\s*<b>TL;DR:<\/b>/);
-    const emojiStr = emojiMatch ? emojiMatch[1].trim() : "📰";
-
-    const tldrMatch = summary.match(/<b>TL;DR:<\/b>\s*(.*?)\s*💡/);
-    const tldrStr = tldrMatch ? tldrMatch[1].trim() : summary.replace(/<[^>]*>?/gm, '');
-
-    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*?)(?:🏷|#|$)/);
-    const insightStr = insightMatch ? insightMatch[1].trim() : "";
-
-    const tagsMatch = summary.match(/🏷️\s*(.*)$/);
-    const tagsStr = tagsMatch ? tagsMatch[1].trim() : "";
-
-    exportedArray.push({
-      id: post.id,
-      title: post.title,
-      score: post.score,
-      url: post.url || `https://news.ycombinator.com/item?id=${post.id}`,
-      hn_url: `https://news.ycombinator.com/item?id=${post.id}`,
-      emoji: emojiStr,
-      tldr: tldrStr,
-      insight: insightStr,
-      tags: tagsStr
-    });
-
     // Feedback visual baseado no score
     let badge = '📌';
     if (post.score >= 300) badge = '👑 Destaque:';
@@ -170,38 +141,30 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
 
     fullMsg += `${badge} <b>${post.title}</b> (${post.score} pts)\n`;
     if (post.url) fullMsg += `  🔗 <a href="${post.url}">Acessar link</a>\n`;
-    fullMsg += `  � <a href="https://news.ycombinator.com/item?id=${post.id}">Discussão (HN)</a>\n`;
-    fullMsg += `  📝 ${summary.trim()}\n\n===POST_SEPARATOR===\n\n`;
+    fullMsg += `  📝 ${summary.trim()}\n\n`;
   }
 
   if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-    const blocks = fullMsg.split('===POST_SEPARATOR===');
+    const blocks = fullMsg.split('\n\n');
     let currentChunk = '';
     const chunks = [];
 
     for (const block of blocks) {
-      const cleanBlock = block.trim();
-      if (!cleanBlock) continue;
-
-      if (currentChunk.length + cleanBlock.length + 2 > 3900) {
+      if (currentChunk.length + block.length + 2 > 3900) {
         chunks.push(currentChunk);
-        currentChunk = cleanBlock;
+        currentChunk = block;
       } else {
-        currentChunk += (currentChunk ? '\n\n' : '') + cleanBlock;
+        currentChunk += (currentChunk ? '\n\n' : '') + block;
       }
     }
     if (currentChunk) chunks.push(currentChunk);
 
-    console.log(`[DEBUG] Quantidade de chunks a enviar: ${chunks.length}`);
-
     for (const chunk of chunks) {
-      console.log(`[DEBUG] Tamanho do chunk atual: ${chunk.length} caracteres`);
       try {
-        const resp = await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, chunk, {
+        await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, chunk, {
           parse_mode: 'HTML',
           disable_web_page_preview: true
         });
-        console.log(`[DEBUG] Resposta API Telegram: ok=${resp.ok}, msg_id=${resp.result?.message_id}`);
       } catch (err) {
         console.error('❌ Erro envio Telegram:', err.message);
       }
@@ -210,20 +173,7 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     console.log("✅ Resumo enviado para o Telegram!");
   }
 
-  const whatsAppMsg = fullMsg.split('===POST_SEPARATOR===').join('').trim();
-  await evolution.sendMessage(whatsAppMsg);
+  await evolution.sendMessage(fullMsg);
   console.log("✅ Resumo enviado para o WhatsApp!");
-
-  // Salvar Dump JSON Local
-  const dataDir = path.resolve('./data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  const digestPayload = {
-    updated_at: new Date().toISOString(),
-    posts: exportedArray
-  };
-  fs.writeFileSync(path.join(dataDir, 'latest.json'), JSON.stringify(digestPayload, null, 2));
-  console.log("✅ Dump JSON estático atualizado em /data/latest.json!");
 
 })();

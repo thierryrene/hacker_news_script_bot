@@ -131,37 +131,11 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
   const summaries = await summarizeAllWithGemini(posts);
 
   let fullMsg = `<b>📰 HACKER NEWS - TOP STORIES 🚀</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  const exportedArray = [];
 
   for (let i = 0; i < posts.length; i++) {
     const post = posts[i];
     const summary = summaries[i] || "Não foi possível gerar um resumo detalhado.";
     
-    // Process string para o frontend feed
-    const emojiMatch = summary.match(/^(.*?)\s*<b>TL;DR:<\/b>/);
-    const emojiStr = emojiMatch ? emojiMatch[1].trim() : "📰";
-
-    const tldrMatch = summary.match(/<b>TL;DR:<\/b>\s*(.*?)\s*💡/);
-    const tldrStr = tldrMatch ? tldrMatch[1].trim() : summary.replace(/<[^>]*>?/gm, '');
-
-    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*?)(?:🏷|#|$)/);
-    const insightStr = insightMatch ? insightMatch[1].trim() : "";
-
-    const tagsMatch = summary.match(/🏷️\s*(.*)$/);
-    const tagsStr = tagsMatch ? tagsMatch[1].trim() : "";
-
-    exportedArray.push({
-      id: post.id,
-      title: post.title,
-      score: post.score,
-      url: post.url || `https://news.ycombinator.com/item?id=${post.id}`,
-      hn_url: `https://news.ycombinator.com/item?id=${post.id}`,
-      emoji: emojiStr,
-      tldr: tldrStr,
-      insight: insightStr,
-      tags: tagsStr
-    });
-
     // Feedback visual baseado no score
     let badge = '📌';
     if (post.score >= 300) badge = '👑 Destaque:';
@@ -213,17 +187,5 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
   const whatsAppMsg = fullMsg.split('===POST_SEPARATOR===').join('').trim();
   await evolution.sendMessage(whatsAppMsg);
   console.log("✅ Resumo enviado para o WhatsApp!");
-
-  // Salvar Dump JSON Local
-  const dataDir = path.resolve('./data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  const digestPayload = {
-    updated_at: new Date().toISOString(),
-    posts: exportedArray
-  };
-  fs.writeFileSync(path.join(dataDir, 'latest.json'), JSON.stringify(digestPayload, null, 2));
-  console.log("✅ Dump JSON estático atualizado em /data/latest.json!");
 
 })();

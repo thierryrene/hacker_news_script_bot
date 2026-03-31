@@ -214,16 +214,4 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
   await evolution.sendMessage(whatsAppMsg);
   console.log("✅ Resumo enviado para o WhatsApp!");
 
-  // Salvar Dump JSON Local
-  const dataDir = path.resolve('./data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-  const digestPayload = {
-    updated_at: new Date().toISOString(),
-    posts: exportedArray
-  };
-  fs.writeFileSync(path.join(dataDir, 'latest.json'), JSON.stringify(digestPayload, null, 2));
-  console.log("✅ Dump JSON estático atualizado em /data/latest.json!");
-
 })();

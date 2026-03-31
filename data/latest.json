@@ -1,0 +1,170 @@
+{
+  "updated_at": "2026-03-31T01:58:30.591Z",
+  "posts": [
+    {
+      "id": 47570269,
+      "title": "Copilot edited an ad into my PR",
+      "score": 1462,
+      "url": "https://notes.zachmanson.com/copilot-edited-an-ad-into-my-pr/",
+      "hn_url": "https://news.ycombinator.com/item?id=47570269",
+      "emoji": "🤖",
+      "tldr": "O GitHub Copilot inseriu anúncios de si mesmo e do Raycast em uma descrição de Pull Request após ser acionado para corrigir um erro de digitação.",
+      "insight": "O incidente ilustra a \"enshitificação\" de ferramentas de IA, onde a utilidade para o usuário é sacrificada em prol de estratégias de monetização agressivas.",
+      "tags": "#AI #GitHub #DevOps"
+    },
+    {
+      "id": 47566865,
+      "title": "ChatGPT won't let you type until Cloudflare reads your React state",
+      "score": 940,
+      "url": "https://www.buchodi.com/chatgpt-wont-let-you-type-until-cloudflare-reads-your-react-state-i-decrypted-the-program-that-does-it/",
+      "hn_url": "https://news.ycombinator.com/item?id=47566865",
+      "emoji": "🔒",
+      "tldr": "Uma análise técnica revelou que o Cloudflare Turnstile no ChatGPT descriptografa programas para verificar não apenas o navegador, mas o estado interno da aplicação React.",
+      "insight": "Medidas anti-bot estão evoluindo para validações profundas de SPA, tornando a emulação de navegadores por scripts simples cada vez mais ineficaz e complexa.",
+      "tags": "#Security #React #Cloudflare"
+    },
+    {
+      "id": 47564421,
+      "title": "Voyager 1 runs on 69 KB of memory and an 8-track tape recorder",
+      "score": 664,
+      "url": "https://techfixated.com/a-1977-time-capsule-voyager-1-runs-on-69-kb-of-memory-and-an-8-track-tape-recorder-4/",
+      "hn_url": "https://news.ycombinator.com/item?id=47564421",
+      "emoji": "🚀",
+      "tldr": "A sonda Voyager 1 continua operando a 24 bilhões de quilômetros da Terra utilizando apenas 69 KB de memória e um gravador de fita de 8 pistas.",
+      "insight": "A durabilidade dessa missão de 47 anos prova que a engenharia focada em simplicidade e robustez extrema pode superar limitações de hardware que hoje parecem impossíveis.",
+      "tags": "#Space #Engineering #VintageTech"
+    },
+    {
+      "id": 47574034,
+      "title": "How to turn anything into a router",
+      "score": 588,
+      "url": "https://nbailey.ca/post/router/",
+      "hn_url": "https://news.ycombinator.com/item?id=47574034",
+      "emoji": "🌐",
+      "tldr": "Diante de possíveis restrições governamentais à importação de roteadores nos EUA, este guia explica como transformar qualquer PC ou hardware antigo com Linux em um roteador robusto.",
+      "insight": "Hardware antigo pode ganhar vida nova com software open-source, oferecendo mais controle e segurança do que equipamentos comerciais de \"caixa fechada\".",
+      "tags": "#Networking #Linux #Hardware"
+    },
+    {
+      "id": 47577761,
+      "title": "Fedware: Government apps that spy harder than the apps they ban",
+      "score": 421,
+      "url": "https://www.sambent.com/the-white-house-app-has-huawei-spyware-and-an-ice-tip-line/",
+      "hn_url": "https://news.ycombinator.com/item?id=47577761",
+      "emoji": "📱",
+      "tldr": "O aplicativo oficial da Casa Branca foi criticado por exigir permissões excessivas e conter rastreadores de empresas sancionadas, como a Huawei, atuando como um \"fedware\".",
+      "insight": "Existe uma ironia perigosa quando apps governamentais utilizam práticas de coleta de dados invasivas semelhantes às das plataformas que eles tentam banir por segurança nacional.",
+      "tags": "#Privacy #Cybersecurity #GovTech"
+    },
+    {
+      "id": 47569471,
+      "title": "Philly courts will ban all smart eyeglasses starting next week",
+      "score": 392,
+      "url": "https://www.inquirer.com/news/philadelphia/smart-glasses-ai-meta-courts-20260326.html",
+      "hn_url": "https://news.ycombinator.com/item?id=47569471",
+      "emoji": "👓",
+      "tldr": "Os tribunais de Filadélfia proibiram o uso de óculos inteligentes e com IA para evitar gravações ocultas e proteger testemunhas e jurados de possíveis intimidações.",
+      "insight": "A dificuldade de detectar dispositivos vestíveis está forçando instituições a adotar proibições genéricas para manter a integridade de espaços judiciais sensíveis.",
+      "tags": "#Law #AI #Wearables"
+    },
+    {
+      "id": 47573519,
+      "title": "Do your own writing",
+      "score": 363,
+      "url": "https://alexhwoods.com/dont-let-ai-write-for-you/",
+      "hn_url": "https://news.ycombinator.com/item?id=47573519",
+      "emoji": "✍️",
+      "tldr": "O autor defende a importância de escrever o próprio conteúdo técnico sem depender de IA, visando preservar a voz pessoal e a clareza do raciocínio lógico.",
+      "insight": "O excesso de automação na escrita pode atrofiar a habilidade crítica de comunicação, que é o que realmente diferencia um especialista no mercado saturado de conteúdo genérico.",
+      "tags": "#Writing #AI #Creativity"
+    },
+    {
+      "id": 47566143,
+      "title": "My MacBook keyboard is broken and it's insanely expensive to fix",
+      "score": 356,
+      "url": "https://tobiasberg.net/posts/my-macbook-keyboard-is-broken-and-its-insanely-expensive-to-fix/",
+      "hn_url": "https://news.ycombinator.com/item?id=47566143",
+      "emoji": "💻",
+      "tldr": "Um usuário de MacBook Pro enfrentou um orçamento de €730 para consertar uma única tecla, pois o teclado é rebitado ao chassi, exigindo a troca de toda a peça superior.",
+      "insight": "O design focado em estética e espessura muitas vezes sacrifica a reparabilidade, forçando os usuários a aceitar obsolescência programada ou reparos absurdamente caros.",
+      "tags": "#Apple #RightToRepair #Hardware"
+    },
+    {
+      "id": 47570666,
+      "title": "The curious case of retro demo scene graphics",
+      "score": 340,
+      "url": "https://www.datagubbe.se/aipixels/",
+      "hn_url": "https://news.ycombinator.com/item?id=47570666",
+      "emoji": "🎨",
+      "tldr": "A \"demo scene\" retrô possuía uma cultura peculiar onde plagiar artes famosas era aceitável, desde que o esforço técnico de converter a imagem para pixels à mão fosse excepcional.",
+      "insight": "O valor artístico nessas comunidades era medido pela maestria sobre as limitações brutas do hardware, priorizando o \"craft\" técnico sobre a originalidade da ideia.",
+      "tags": "#RetroComputing #Art #History"
+    },
+    {
+      "id": 47575403,
+      "title": "CodingFont: A game to help you pick a coding font",
+      "score": 309,
+      "url": "https://www.codingfont.com/",
+      "hn_url": "https://news.ycombinator.com/item?id=47575403",
+      "emoji": "🔠",
+      "tldr": "O CodingFont é uma ferramenta gamificada que ajuda desenvolvedores a escolher a melhor fonte para programação através de duelos visuais de preferência.",
+      "insight": "Pequenos ajustes na ergonomia visual, como a tipografia correta, podem reduzir drasticamente a fadiga ocular e aumentar a produtividade em longas sessões de código.",
+      "tags": "#DevTools #Typography #UX"
+    },
+    {
+      "id": 47576861,
+      "title": "New Washington state law bans noncompete agreements",
+      "score": 301,
+      "url": "https://www.seattletimes.com/business/local-business/new-washington-law-bans-noncompete-agreements/",
+      "hn_url": "https://news.ycombinator.com/item?id=47576861",
+      "emoji": "⚖️",
+      "tldr": "O estado de Washington sancionou uma lei que proíbe totalmente cláusulas de não-concorrência, garantindo que trabalhadores possam trocar de emprego ou abrir novos negócios livremente.",
+      "insight": "Essa mudança legislativa deve impulsionar a inovação tecnológica regional ao remover barreiras legais que impediam a livre circulação de talentos e ideias entre empresas rivais.",
+      "tags": "#Law #TechJobs #Economy"
+    },
+    {
+      "id": 47573887,
+      "title": "Bird brains (2023)",
+      "score": 293,
+      "url": "https://www.dhanishsemar.com/writing/bird-brains",
+      "hn_url": "https://news.ycombinator.com/item?id=47573887",
+      "emoji": "🦜",
+      "tldr": "Papagaios Kea na Nova Zelândia aprenderam a manipular cones de trânsito para forçar carros a parar e obter comida, forçando o governo a criar \"academias de quebra-cabeças\" para as aves.",
+      "insight": "A inteligência animal adaptativa pode desafiar infraestruturas humanas de forma imprevista, exigindo soluções de design que considerem o comportamento da fauna local.",
+      "tags": "#Nature #Intelligence #Biology"
+    },
+    {
+      "id": 47571376,
+      "title": "I use Excalidraw to manage my diagrams for my blog",
+      "score": 271,
+      "url": "https://blog.lysk.tech/excalidraw-frame-export/",
+      "hn_url": "https://news.ycombinator.com/item?id=47571376",
+      "emoji": "📊",
+      "tldr": "Um desenvolvedor criou um fluxo de trabalho automatizado que utiliza o Excalidraw no VSCode para gerar e exportar diagramas SVG de forma sincronizada com o conteúdo de seu blog.",
+      "insight": "Reduzir o atrito em tarefas repetitivas de design permite que o criador de conteúdo foque mais na narrativa técnica do que na logística manual de exportação de arquivos.",
+      "tags": "#DevLife #Automation #Excalidraw"
+    },
+    {
+      "id": 47571279,
+      "title": "I am definitely missing the pre-AI writing era",
+      "score": 265,
+      "url": "https://www.lesswrong.com/posts/BJ4pnropWdnzzgeJc/i-am-definitely-missing-the-pre-ai-writing-era",
+      "hn_url": "https://news.ycombinator.com/item?id=47571279",
+      "emoji": "🧠",
+      "tldr": "Um autor compartilha como o uso excessivo de LLMs para revisar textos está erodindo sua confiança e sua voz própria, tornando sua escrita dependente de validação algorítmica.",
+      "insight": "A dependência da \"perfeição\" sugerida pela IA pode criar um ciclo de homogeneização cultural, onde o estilo pessoal e as nuances humanas são sacrificados pelo padrão genérico.",
+      "tags": "#AI #Writing #Philosophy"
+    },
+    {
+      "id": 47575616,
+      "title": "FTC action against Match and OkCupid for deceiving users, sharing personal data",
+      "score": 258,
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2026/03/ftc-takes-action-against-match-okcupid-deceiving-users-sharing-personal-data-third-party",
+      "hn_url": "https://news.ycombinator.com/item?id=47575616",
+      "emoji": "🛡️",
+      "tldr": "A FTC processou o Match Group e o OkCupid por enganar usuários e compartilhar fotos e dados de localização confidenciais com terceiros, violando promessas de privacidade.",
+      "insight": "A fiscalização rigorosa é essencial em mercados de dados sensíveis, onde a biometria e a localização são frequentemente monetizadas sem o consentimento real ou claro do usuário.",
+      "tags": "#Privacy #Legal #DataProtection"
+    }
+  ]
+}
