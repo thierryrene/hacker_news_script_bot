@@ -76,13 +76,13 @@ async function summarizeAllWithGemini(posts) {
     const model = genAI.getGenerativeModel({ model: modelName });
 
     let prompt = `Você é um sumarizador especialista de notícias tech. Recebi posts do Hacker News com o título e um trecho do seu conteúdo original. 
-Faça um resumo rico e detalhado em português de 2 a 4 frases para cada um deles, explicando as ideias centrais da matéria.
-COMECE o resumo de cada post obrigatoriamente com um emoji relevante ao tema (ex: 💻 para código, 🧠 para IA, 🛡️ para segurança, 📱 para mobile, 🔋 para hardware, 💰 para startups).
+Faça um resumo rico e estruturado em português para cada um deles.
 
-Sua resposta DEVE conter EXATAMENTE uma linha por post, no formato:
-1. [Emoji] [Resumo detalhado do post 1]
-2. [Emoji] [Resumo detalhado do post 2]
-...
+Sua resposta DEVE conter EXATAMENTE uma linha por post (sem quebras de linha no meio de um post), no formato abaixo:
+1. [Emoji] <b>TL;DR:</b> [1 a 2 frases com a ideia central] 💡 <b>Insight:</b> [1 a 2 frases com a consequência ou ação] 🏷️ [2 a 3 hashtags curtas, ex: #AI #Dev]
+2. [Emoji] <b>TL;DR:</b> ...
+
+Lembre-se: NÃO use quebras de linha (\\n) dentro do resumo de um mesmo post. Apenas 1 linha de retorno para cada post enviado. Especialmente o formato deve manter as tags HTML corretas "<b>TL;DR:</b>".
 
 Posts:\n`;
 
@@ -142,30 +142,38 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
 
     fullMsg += `${badge} <b>${post.title}</b> (${post.score} pts)\n`;
     if (post.url) fullMsg += `  🔗 <a href="${post.url}">Acessar link</a>\n`;
-    fullMsg += `  📝 ${summary.trim()}\n\n`;
+    fullMsg += `  � <a href="https://news.ycombinator.com/item?id=${post.id}">Discussão (HN)</a>\n`;
+    fullMsg += `  📝 ${summary.trim()}\n\n===POST_SEPARATOR===\n\n`;
   }
 
   if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
-    const blocks = fullMsg.split('\n\n');
+    const blocks = fullMsg.split('===POST_SEPARATOR===');
     let currentChunk = '';
     const chunks = [];
 
     for (const block of blocks) {
-      if (currentChunk.length + block.length + 2 > 3900) {
+      const cleanBlock = block.trim();
+      if (!cleanBlock) continue;
+
+      if (currentChunk.length + cleanBlock.length + 2 > 3900) {
         chunks.push(currentChunk);
-        currentChunk = block;
+        currentChunk = cleanBlock;
       } else {
-        currentChunk += (currentChunk ? '\n\n' : '') + block;
+        currentChunk += (currentChunk ? '\n\n' : '') + cleanBlock;
       }
     }
     if (currentChunk) chunks.push(currentChunk);
 
+    console.log(`[DEBUG] Quantidade de chunks a enviar: ${chunks.length}`);
+
     for (const chunk of chunks) {
+      console.log(`[DEBUG] Tamanho do chunk atual: ${chunk.length} caracteres`);
       try {
-        await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, chunk, {
+        const resp = await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, chunk, {
           parse_mode: 'HTML',
           disable_web_page_preview: true
         });
+        console.log(`[DEBUG] Resposta API Telegram: ok=${resp.ok}, msg_id=${resp.result?.message_id}`);
       } catch (err) {
         console.error('❌ Erro envio Telegram:', err.message);
       }
@@ -174,7 +182,8 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     console.log("✅ Resumo enviado para o Telegram!");
   }
 
-  await evolution.sendMessage(fullMsg);
+  const whatsAppMsg = fullMsg.split('===POST_SEPARATOR===').join('').trim();
+  await evolution.sendMessage(whatsAppMsg);
   console.log("✅ Resumo enviado para o WhatsApp!");
 
 })();
