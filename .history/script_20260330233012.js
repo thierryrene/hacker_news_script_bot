@@ -59,7 +59,6 @@ async function loadDailyDigest() {
                 </div>
                 <p><strong>TL;DR:</strong> ${post.tldr || 'Conteúdo sumarizado indisponível.'}</p>
                 ${post.insight ? `<p style="margin-top: 0.5rem; color: #d0d0d0;"><strong>Insight:</strong> ${post.insight}</p>` : ''}
-                ${post.community ? `<div style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(0,0,0,0.15); border-left: 3px solid var(--primary-color); border-radius: 4px;"><p style="font-size: 0.9rem; color: #c0c0c0; margin:0;"><strong>🗣️ Comunidade:</strong> ${post.community.replace(/🗣️/g, '').trim()}</p></div>` : ''}
                 ${post.tags ? `<div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-orange);">${post.tags}</div>` : ''}
             `;
             container.appendChild(card);

@@ -1,0 +1,24 @@
+# Tasks: Web Viewer
+
+## Phase 1: Infrastructure and Node Export
+
+- [x] 1.1 Em `hn_summary.js`, importar via root standard library `import fs from 'fs';` e `import path from 'path';`.
+- [x] 1.2 Em `hn_summary.js`, dentro da compilação do `fullMsg` (ou num novo laco), processar cada linha vinda do Gemini para separar as partes "TL;DR", "Insight" e "Tags".
+- [x] 1.3 Em `hn_summary.js`, criar objeto map result e usar o wrapper `fs.mkdirSync('./data', { recursive: true })` e `fs.writeFileSync('./data/latest.json', JSON.stringify(exportedArray, null, 2))` ao término do agrupamento de dados no final da main async.
+
+## Phase 2: Action Workflow Expansion
+
+- [x] 2.1 Em `.github/workflows/summary.yml`, adicionar um novo step sequencial no final do doc garantindo a gravação git bot (`git config --global user.name` e `user.email`).
+- [x] 2.2 Adicionar comando explícito: `git add data/latest.json`, seguido de `git commit -m "chore(auto): daily digest json update [skip ci]" || echo "No changes to commit"` bem como o step de diretiva de `git push`.
+
+## Phase 3: Frontend DOM e Renderização (HTML/CSS)
+
+- [x] 3.1 Abrir o `index.html`. Adicionar uma nova seção `<section id="daily-digest" class="features">` contendo o header de "Edição de Hoje", e um esqueleto alvo dentro via `<div id="feed-container" class="feature-grid"></div>`.
+- [x] 3.2 Garantir nos links do header `<nav>` uma âncora `href="#daily-digest"` para levar diretamente pro reader.
+
+## Phase 4: Frontend Scripting (Vanilla JS)
+
+- [x] 4.1 Abrir `script.js` nativo do projeto que estava alocando firulas do site e desenvolver function assíncrona global: `async function loadDailyDigest()`.
+- [x] 4.2 Montar o script pra realizar o `fetch('./data/latest.json')` populando o `document.getElementById('feed-container')`. Injetar dinamicamente os `div.feature-card` preenchendo todos os paramétros, usando Template Literals (`` `...` ``) mapeando `item.title`, `item.url`, `item.hn_url`, pontuação local, TL;DR, Insights e tags.
+- [x] 4.3 Desenvolver tratamento do `catch(err)` para se não houver JSON preenchendo o feed container avisando de forma graciosa "Feeds em confecção / Cron aguardando disparo".
+- [x] 4.4 Chamar a invocação final da `loadDailyDigest()` local na ponta do listener de script de load.

@@ -44,52 +44,6 @@ async function fetchLinkContent(url) {
   }
 }
 
-
-async function fetchTopComments(kids) {
-  if (!kids || !Array.isArray(kids)) return '';
-  const firstKids = kids.slice(0, 5);
-  try {
-    const promises = firstKids.map(id => 
-      axios.get(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r => r.data).catch(() => null)
-    );
-    const comments = await Promise.all(promises);
-    return comments.filter(c => c && c.text && !c.deleted && !c.dead)
-      .map(c => c.text.replace(/<[^>]*>?/gm, ' ').substring(0, 400))
-      .join(' | ');
-  } catch(e) {
-    return '';
-  }
-}
-
-async function summarizeCommentsWithGemini(postsWithComments) {
-  try {
-    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const model = genAI.getGenerativeModel({ model: modelName });
-    
-    let prompt = `Você é um analista de comunidade discutindo links de tecnologia.
-Abaixo estão os títulos dos posts e as opiniões mais relevantes da comunidade do Hacker News sobre eles.
-Para cada post, gere uma linha resumindo a voz da comunidade (divergências, elogios, ou piadas).
-
-Formato EXATO de cada linha:
-1. 🗣️ <b>Comunidade:</b> [1-2 frases resumindo a discussão do post. Sem quebras de linha.]
-2. 🗣️ <b>Comunidade:</b> ...
-
-Posts:\n`;
-
-    postsWithComments.forEach((post, index) => {
-      prompt += `\n[Post ${index + 1}]
-Título: ${post.title}
-Comentários Brutos: ${post.rawComments || 'Sem comentários.'}\n`;
-    });
-
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim().split('\n').filter(l => /^\d+[\.\)]\s*/.test(l)).map(l => l.replace(/^\d+[\.\)]\s*/, '').trim());
-  } catch(e) {
-    console.error("Erro no resumo de comentários", e.message);
-    return [];
-  }
-}
-
 async function getHackerNewsTop() {
   try {
     // Busca os Top Stories (IDs)
@@ -173,15 +127,6 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     }
   }
 
-  
-  console.log("🗣️ Extraindo comentários top...");
-  for (const post of posts) {
-    post.rawComments = await fetchTopComments(post.kids);
-  }
-  
-  console.log("💭 Resumindo opiniões da comunidade com Gemini...");
-  const commentSummaries = await summarizeCommentsWithGemini(posts);
-
   console.log(`📝 Enviando para resumo em lote no Gemini...`);
   const summaries = await summarizeAllWithGemini(posts);
 
@@ -216,11 +161,6 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
       insight: insightStr,
       tags: tagsStr
     });
-
-    
-    const cSum = commentSummaries[i] || "";
-    const cleanComm = cSum.replace(/🗣️\s*<b>Comunidade:<\/b>\s*/, '').replace(/<[^>]*>?/gm, '');
-    exportedArray[exportedArray.length-1].community = cleanComm;
 
     // Feedback visual baseado no score
     let badge = '📌';
@@ -268,24 +208,6 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
       await new Promise(resolve => setTimeout(resolve, 500)); // Flood limit delay
     }
     console.log("✅ Resumo enviado para o Telegram!");
-
-  let commentsMsg = `<b>💭 HACKER NEWS - VOZ DA COMUNIDADE</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  for(let i=0; i<posts.length; i++) {
-     const cSum = commentSummaries[i];
-     if(cSum && cSum.includes("Comunidade:")) {
-        commentsMsg += `📌 <b>${posts[i].title}</b>\n  ${cSum}\n\n`;
-     }
-  }
-
-  if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID && commentsMsg.length > 100) {
-      try {
-        await telegram.sendMessage(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, commentsMsg, {
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        });
-      } catch(e) {}
-  }
-
   }
 
   const whatsAppMsg = fullMsg.split('===POST_SEPARATOR===').join('').trim();
