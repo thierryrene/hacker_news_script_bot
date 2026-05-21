@@ -6,6 +6,7 @@ import telegram from './telegram.js';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
 import path from 'path';
+import { initDb, getHash, getPostSummary, savePostSummary, getCommentSummary, saveCommentSummary } from './cache.js';
 
 // Corrigir erro AggregateError no Node 20+ (preferir IPv4)
 import dns from 'node:dns';
@@ -44,7 +45,6 @@ async function fetchLinkContent(url) {
   }
 }
 
-
 async function fetchTopComments(kids) {
   if (!kids || !Array.isArray(kids)) return '';
   const firstKids = kids.slice(0, 5);
@@ -64,15 +64,24 @@ async function fetchTopComments(kids) {
 async function summarizeCommentsWithGemini(postsWithComments) {
   try {
     const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "array",
+          description: "Lista de resumos de opiniões da comunidade para cada post enviado, respeitando a ordem exata dos posts.",
+          items: {
+            type: "string",
+            description: "1 a 2 frases em português resumindo a voz da comunidade do Hacker News sobre o post (divergências, elogios, discussões ou piadas). Sem formatação HTML."
+          }
+        }
+      }
+    });
     
     let prompt = `Você é um analista de comunidade discutindo links de tecnologia.
 Abaixo estão os títulos dos posts e as opiniões mais relevantes da comunidade do Hacker News sobre eles.
-Para cada post, gere uma linha resumindo a voz da comunidade (divergências, elogios, ou piadas).
-
-Formato EXATO de cada linha:
-1. 🗣️ <b>Comunidade:</b> [1-2 frases resumindo a discussão do post. Sem quebras de linha.]
-2. 🗣️ <b>Comunidade:</b> ...
+Para cada post, gere um resumo conciso (1 a 2 frases) da voz da comunidade.
 
 Posts:\n`;
 
@@ -83,9 +92,10 @@ Comentários Brutos: ${post.rawComments || 'Sem comentários.'}\n`;
     });
 
     const result = await model.generateContent(prompt);
-    return result.response.text().trim().split('\n').filter(l => /^\d+[\.\)]\s*/.test(l)).map(l => l.replace(/^\d+[\.\)]\s*/, '').trim());
+    const text = result.response.text().trim();
+    return JSON.parse(text);
   } catch(e) {
-    console.error("Erro no resumo de comentários", e.message);
+    console.error("❌ Erro no resumo de comentários:", e.message);
     return [];
   }
 }
@@ -121,16 +131,44 @@ async function getHackerNewsTop() {
 async function summarizeAllWithGemini(posts) {
   try {
     const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "array",
+          description: "Lista de resumos e análises estruturadas para cada post enviado, mantendo a exata ordem dos posts.",
+          items: {
+            type: "object",
+            properties: {
+              emoji: {
+                type: "string",
+                description: "Um único emoji que represente visualmente a temática do post."
+              },
+              tldr: {
+                type: "string",
+                description: "1 a 2 frases em português resumindo a ideia central da notícia de forma rica e informativa."
+              },
+              porQueImporta: {
+                type: "string",
+                description: "1 a 2 frases em português explicando o impacto prático direto, consequência futura ou ação necessária para desenvolvedores e profissionais de tecnologia."
+              },
+              tags: {
+                type: "array",
+                description: "2 a 3 hashtags concisas em português e minúsculas categorizando o post (ex: #ia, #seguranca, #hardware).",
+                items: {
+                  type: "string"
+                }
+              }
+            },
+            required: ["emoji", "tldr", "porQueImporta", "tags"]
+          }
+        }
+      }
+    });
 
-    let prompt = `Você é um sumarizador especialista de notícias tech. Recebi posts do Hacker News com o título e um trecho do seu conteúdo original. 
-Faça um resumo rico e estruturado em português para cada um deles.
-
-Sua resposta DEVE conter EXATAMENTE uma linha por post (sem quebras de linha no meio de um post), no formato abaixo:
-1. [Emoji] <b>TL;DR:</b> [1 a 2 frases com a ideia central] 💡 <b>Insight:</b> [1 a 2 frases com a consequência ou ação]
-2. [Emoji] <b>TL;DR:</b> ...
-
-Lembre-se: NÃO use quebras de linha (\\n) dentro do resumo de um mesmo post. Apenas 1 linha de retorno para cada post enviado. Especialmente o formato deve manter as tags HTML corretas "<b>TL;DR:</b>".
+    let prompt = `Você é um sumarizador especialista de notícias tech. Recebi posts do Hacker News com o título e um trecho do seu conteúdo original.
+Faça um resumo rico, denso e estruturado em português para cada um deles.
 
 Posts:\n`;
 
@@ -142,14 +180,8 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     });
 
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
-    
-    const summaries = responseText.split('\n')
-      .filter(l => /^\d+[\.\)]\s*/.test(l))
-      .map(l => l.replace(/^\d+[\.\)]\s*/, '').trim())
-      .filter(l => l.length > 0);
-
-    return summaries;
+    const text = result.response.text().trim();
+    return JSON.parse(text);
   } catch (err) {
     console.error(`❌ Erro no Gemini ao resumir os posts:`, err.message);
     return [];
@@ -157,6 +189,7 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
 }
 
 (async () => {
+  await initDb();
   console.log("📊 Buscando melhores posts do Hacker News...");
   const posts = await getHackerNewsTop();
 
@@ -165,72 +198,181 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
     return;
   }
 
-  console.log(`📝 Extraindo conteúdo de ${posts.length} links...`);
-  for (const post of posts) {
+  console.log(`📝 Extraindo conteúdo de ${posts.length} links concorrentemente...`);
+  const scrapePromises = posts.map(async (post) => {
     if (post.url && !post.url.includes('news.ycombinator.com/item')) {
       console.log(`- Lendo: ${post.title}`);
       post.fetchedText = await fetchLinkContent(post.url);
     }
-  }
+  });
+  await Promise.all(scrapePromises);
 
-  
-  console.log("🗣️ Extraindo comentários top...");
-  for (const post of posts) {
+  console.log("🗣️ Extraindo comentários top concorrentemente...");
+  const commentPromises = posts.map(async (post) => {
     post.rawComments = await fetchTopComments(post.kids);
-  }
+  });
+  await Promise.all(commentPromises);
   
-  console.log("💭 Resumindo opiniões da comunidade com Gemini...");
-  const commentSummaries = await summarizeCommentsWithGemini(posts);
+  console.log("💭 Resumindo opiniões da comunidade com Gemini (JSON)...");
+  const commentSummaries = [];
+  const uncachedCommentPosts = [];
+  const commentCachedIndexes = [];
 
-  console.log(`📝 Enviando para resumo em lote no Gemini...`);
-  const summaries = await summarizeAllWithGemini(posts);
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
+    const commentsHash = getHash(post.rawComments);
+    const cachedSummary = await getCommentSummary(post.id, commentsHash);
+    if (cachedSummary) {
+      console.log(`- [Cache Hit] Comentários do Post ${post.id} carregados do SQLite`);
+      commentSummaries[i] = cachedSummary;
+    } else {
+      commentSummaries[i] = null;
+      uncachedCommentPosts.push(post);
+      commentCachedIndexes.push(i);
+    }
+  }
+
+  if (uncachedCommentPosts.length > 0) {
+    console.log(`- Chamando Gemini para resumir comentários de ${uncachedCommentPosts.length} posts...`);
+    const newCommentSummaries = await summarizeCommentsWithGemini(uncachedCommentPosts);
+    const hasValidResults = newCommentSummaries && newCommentSummaries.length > 0;
+    
+    for (let j = 0; j < uncachedCommentPosts.length; j++) {
+      const post = uncachedCommentPosts[j];
+      const originalIndex = commentCachedIndexes[j];
+      const summaryText = hasValidResults ? (newCommentSummaries[j] || "") : "";
+      commentSummaries[originalIndex] = summaryText;
+
+      // Apenas salva no cache se tivemos uma resposta válida da API
+      if (hasValidResults && summaryText) {
+        const commentsHash = getHash(post.rawComments);
+        await saveCommentSummary(post.id, commentsHash, summaryText);
+      }
+    }
+  }
+
+  console.log(`📝 Enviando para resumo estruturado em lote no Gemini (JSON)...`);
+  const summaries = [];
+  const uncachedPosts = [];
+  const postCachedIndexes = [];
+
+  for (let i = 0; i < posts.length; i++) {
+    const post = posts[i];
+    const textHash = getHash(post.fetchedText || post.title);
+    const cachedSummary = await getPostSummary(post.id, textHash);
+    if (cachedSummary) {
+      console.log(`- [Cache Hit] Resumo do Post ${post.id} carregados do SQLite`);
+      summaries[i] = cachedSummary;
+    } else {
+      summaries[i] = null;
+      uncachedPosts.push(post);
+      postCachedIndexes.push(i);
+    }
+  }
+
+  if (uncachedPosts.length > 0) {
+    console.log(`- Chamando Gemini para resumir ${uncachedPosts.length} posts...`);
+    const newSummaries = await summarizeAllWithGemini(uncachedPosts);
+    const hasValidResults = newSummaries && newSummaries.length > 0;
+
+    for (let j = 0; j < uncachedPosts.length; j++) {
+      const post = uncachedPosts[j];
+      const originalIndex = postCachedIndexes[j];
+      
+      if (hasValidResults && newSummaries[j]) {
+        const summaryObj = newSummaries[j];
+        summaries[originalIndex] = summaryObj;
+        
+        // Apenas salva no cache se não for o fallback de erro
+        if (summaryObj.tldr && summaryObj.tldr !== "Não foi possível gerar um resumo detalhado.") {
+          const textHash = getHash(post.fetchedText || post.title);
+          await savePostSummary(post.id, post.title, post.url || '', textHash, summaryObj);
+        }
+      } else {
+        // Fallback temporário (não cacheado)
+        summaries[originalIndex] = { 
+          emoji: "📰", 
+          tldr: "Não foi possível gerar um resumo detalhado.", 
+          porQueImporta: "", 
+          tags: [] 
+        };
+      }
+    }
+  }
 
   let fullMsg = `<b>📰 HACKER NEWS - TOP STORIES 🚀</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
   const exportedArray = [];
 
   for (let i = 0; i < posts.length; i++) {
     const post = posts[i];
-    const summary = summaries[i] || "Não foi possível gerar um resumo detalhado.";
+    const summary = summaries[i] || { emoji: "📰", tldr: "Não foi possível gerar um resumo detalhado.", porQueImporta: "", tags: [] };
     
-    // Process string para o frontend feed
-    const emojiMatch = summary.match(/^(.*?)\s*<b>TL;DR:<\/b>/);
-    const emojiStr = emojiMatch ? emojiMatch[1].trim() : "📰";
+    const emojiStr = summary.emoji || "📰";
+    const tldrStr = summary.tldr || "";
+    const whyItMattersStr = summary.porQueImporta || "";
+    const tagsArray = summary.tags || [];
+    const tagsStr = tagsArray.map(t => t.startsWith('#') ? t.toLowerCase() : `#${t.toLowerCase()}`).join(' ');
 
-    const tldrMatch = summary.match(/<b>TL;DR:<\/b>\s*(.*?)\s*💡/);
-    const tldrStr = tldrMatch ? tldrMatch[1].trim() : summary.replace(/<[^>]*>?/gm, '');
+    const cleanComm = (commentSummaries[i] || "").trim();
 
-    const insightMatch = summary.match(/💡\s*<b>Insight:<\/b>\s*(.*)$/);
-    const insightStr = insightMatch ? insightMatch[1].trim() : "";
+    // Read time estimation (~200 words per minute)
+    const wordCount = post.fetchedText ? post.fetchedText.trim().split(/\s+/).length : 0;
+    const readTime = post.fetchedText ? Math.max(1, Math.round(wordCount / 200)) : 0;
+
+    // Type Prefix Identification
+    let typePrefix = '';
+    const titleUpper = post.title.toUpperCase();
+    if (titleUpper.startsWith('SHOW HN:')) {
+      typePrefix = '🛠️ [SHOW HN] ';
+    } else if (titleUpper.startsWith('ASK HN:')) {
+      typePrefix = '❓ [ASK HN] ';
+    } else if (post.url && post.url.toLowerCase().endsWith('.pdf')) {
+      typePrefix = '📄 [PDF] ';
+    } else if (!post.url || post.url.includes('news.ycombinator.com/item')) {
+      typePrefix = '💬 [DISCUSSÃO] ';
+    }
+
+    const cleanTitle = post.title.replace(/^(SHOW HN:|ASK HN:)\s*/i, '').trim();
 
     exportedArray.push({
       id: post.id,
-      title: post.title,
+      title: cleanTitle,
+      type_prefix: typePrefix,
       score: post.score,
       url: post.url || `https://news.ycombinator.com/item?id=${post.id}`,
       hn_url: `https://news.ycombinator.com/item?id=${post.id}`,
       emoji: emojiStr,
       tldr: tldrStr,
-      insight: insightStr,
-      tags: ""
+      porQueImporta: whyItMattersStr,
+      read_time: readTime,
+      tags: tagsStr,
+      community: cleanComm
     });
-
-    
-    const cSum = commentSummaries[i] || "";
-    const cleanComm = cSum.replace(/🗣️\s*<b>Comunidade:<\/b>\s*/, '').replace(/<[^>]*>?/gm, '');
-    exportedArray[exportedArray.length-1].community = cleanComm;
 
     // Feedback visual baseado no score
     let badge = '📌';
-    if (post.score >= 300) badge = '👑 Destaque:';
-    else if (post.score >= 120) badge = '🔥 Quente:';
-    else if (post.score >= 80) badge = '📈 Relevante:';
+    if (post.score >= 300) badge = '👑';
+    else if (post.score >= 120) badge = '🔥';
+    else if (post.score >= 80) badge = '📈';
 
-    fullMsg += `${badge} <b>${post.title}</b> (${post.score} pts)\n`;
-    if (post.url) fullMsg += `  🔗 <a href="${post.url}">Acessar link</a>\n`;
-    fullMsg += `  💬 <a href="https://news.ycombinator.com/item?id=${post.id}">Discussão (HN)</a>\n`;
-    fullMsg += `  📝 ${summary.trim()}\n`;
+    const formattedTitle = typePrefix ? `${typePrefix}${cleanTitle.toUpperCase()}` : cleanTitle.toUpperCase();
+
+    fullMsg += `${badge} <b>${formattedTitle}</b> (${post.score} pts)\n`;
+    const accessUrl = post.url || `https://news.ycombinator.com/item?id=${post.id}`;
+    let metaLine = `  🔗 <a href="${accessUrl}">Notícia</a> | 💬 <a href="https://news.ycombinator.com/item?id=${post.id}">Discussão</a>`;
+    if (readTime > 0) {
+      metaLine += ` | ⏱️ ${readTime} min`;
+    }
+    fullMsg += `${metaLine}\n`;
+    fullMsg += `  ${emojiStr} <b>TL;DR:</b> ${tldrStr.trim()}\n`;
+    if (whyItMattersStr) {
+      fullMsg += `  💡 <b>Por Que Importa:</b> ${whyItMattersStr.trim()}\n`;
+    }
     if (cleanComm) {
       fullMsg += `  🗣️ <b>Comunidade:</b> ${cleanComm}\n`;
+    }
+    if (tagsStr) {
+      fullMsg += `  🏷️ <i>${tagsStr}</i>\n`;
     }
     fullMsg += `\n===POST_SEPARATOR===\n\n`;
   }
@@ -244,7 +386,8 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
       const cleanBlock = block.trim();
       if (!cleanBlock) continue;
 
-      if (currentChunk.length + cleanBlock.length + 2 > 3900) {
+      // Limite do Telegram é 4096. Usamos 3900 como margem segura incluindo o divisor.
+      if (currentChunk.length + cleanBlock.length + 25 > 3900) {
         chunks.push(currentChunk);
         currentChunk = cleanBlock;
       } else {
@@ -269,11 +412,9 @@ Conteúdo extraído: ${post.fetchedText || post.text || 'Apenas o título está 
       await new Promise(resolve => setTimeout(resolve, 500)); // Flood limit delay
     }
     console.log("✅ Resumo enviado para o Telegram!");
-
-
-
   }
 
+  // Montagem da mensagem limpa para WhatsApp (sem o separador interno)
   const whatsAppMsg = fullMsg.split('===POST_SEPARATOR===').join('').trim();
   await evolution.sendMessage(whatsAppMsg);
   console.log("✅ Resumo enviado para o WhatsApp!");

@@ -49,21 +49,18 @@ async function loadDailyDigest() {
             if (post.score > 200) colorClass = 'bg-gradient-orange';
             else if (post.score > 100) colorClass = 'bg-gradient-purple';
             
-            const displayTitle = post.type_prefix ? `${post.type_prefix}${post.title}` : post.title;
-            const readTimeText = post.read_time ? ` | ⏱️ ${post.read_time} min de leitura` : '';
-            
             card.innerHTML = `
                 <div class="feature-icon ${colorClass}" style="margin-bottom: 1rem; font-style: normal;">
                     ${post.emoji || '📰'}
                 </div>
-                <h3><a href="${post.url}" target="_blank" style="color: inherit; text-decoration: none;">${displayTitle}</a></h3>
+                <h3><a href="${post.url}" target="_blank" style="color: inherit; text-decoration: none;">${post.title}</a></h3>
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                    ⭐ ${post.score} pontos | <a href="${post.hn_url}" target="_blank" style="color: var(--text-blue); text-decoration: none;">Discussão (HN)</a>${readTimeText}
+                    ⭐ ${post.score} pontos | <a href="${post.hn_url}" target="_blank" style="color: var(--text-blue); text-decoration: none;">Discussão (HN)</a>
                 </div>
                 <p><strong>TL;DR:</strong> ${post.tldr || 'Conteúdo sumarizado indisponível.'}</p>
-                ${post.porQueImporta ? `<p style="margin-top: 0.5rem; color: #d0d0d0;"><strong>Por Que Importa:</strong> ${post.porQueImporta}</p>` : ''}
-                ${post.community ? `<div style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(0,0,0,0.15); border-left: 3px solid var(--primary-color); border-radius: 4px;"><p style="font-size: 0.9rem; color: #c0c0c0; margin:0;"><strong>🗣️ Comunidade:</strong> ${post.community}</p></div>` : ''}
-                ${post.tags ? `<div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-orange); font-weight: 500;">${post.tags}</div>` : ''}
+                ${post.insight ? `<p style="margin-top: 0.5rem; color: #d0d0d0;"><strong>Insight:</strong> ${post.insight}</p>` : ''}
+                ${post.community ? `<div style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(0,0,0,0.15); border-left: 3px solid var(--primary-color); border-radius: 4px;"><p style="font-size: 0.9rem; color: #c0c0c0; margin:0;"><strong>🗣️ Comunidade:</strong> ${post.community.replace(/🗣️/g, '').trim()}</p></div>` : ''}
+                ${post.tags ? `<div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-orange);">${post.tags}</div>` : ''}
             `;
             container.appendChild(card);
         });
