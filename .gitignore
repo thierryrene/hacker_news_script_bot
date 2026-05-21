@@ -3,5 +3,5 @@ node_modules/
 .DS_Store
 *.log
 .history/
-data/*.db
+# data/*.db  <-- Comentado para permitir persistência do cache no GitHub Actions
 data/*.sqlite
