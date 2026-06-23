@@ -1,22 +1,47 @@
 # Resumo Hacker News 📰🤖
 
-Este projeto é um script automatizado que coleta os posts mais populares do **Hacker News**, gera resumos inteligentes em português utilizando a IA do **Google Gemini**, e envia um digest diário para canais do **Telegram** e **WhatsApp**.
+Este projeto é um pipeline automatizado em **Python** que coleta os posts mais populares do **Hacker News**, gera resumos inteligentes em português utilizando a IA do **Google Gemini** (saída JSON estruturada), cacheia os resultados em SQLite e envia um digest diário para canais do **Telegram** e **WhatsApp**.
 
 ## 🚀 Funcionalidades
 
 - **Coleta Inteligente**: Filtra os top stories do Hacker News com pontuação superior a 50 pontos.
-- **Extração de Conteúdo**: Lê o conteúdo das páginas dos links para fornecer mais contexto à IA.
-- **Resumos com IA**: Utiliza o Google Gemini para gerar resumos ricos de 2 a 4 frases por notícia.
-- **Multi-plataforma**: Envia as notificações formatadas para:
+- **Extração de Conteúdo**: Lê o conteúdo das páginas dos links e os comentários da comunidade para dar mais contexto à IA.
+- **Resumos com IA**: Usa o Google Gemini com schema JSON estruturado (emoji + TL;DR por post, e um resumo da voz da comunidade).
+- **Cache SQLite**: Evita reprocessar conteúdo idêntico; com TTL configurável.
+- **Multi-plataforma**:
   - **Telegram**: Mensagens em HTML.
-  - **WhatsApp**: Via Evolution API (com conversão automática para markdown e encurtador de links).
+  - **WhatsApp**: Via Evolution API (conversão automática para markdown e encurtador de links).
+
+---
+
+## 🧱 Stack
+
+Projeto **single-language (Python 3)**:
+
+| Camada          | Ferramenta                               |
+| --------------- | ---------------------------------------- |
+| HTTP / scraping | `requests` + `beautifulsoup4`            |
+| Resumo (LLM)    | `google-genai` (Gemini, structured JSON) |
+| Cache           | `sqlite3` da stdlib (acesso direto)      |
+| Config          | `python-dotenv`                          |
+| Testes          | `unittest` da stdlib                     |
+
+---
+
+## 🧭 Por que Python puro (a verdade do projeto)
+
+A primeira versão era um orquestrador **Node.js** que, só para o cache SQLite, chamava um script Python (`cache_helper.py`) via `execFileSync` — **um processo Python novo a cada leitura/escrita de cache**. Em uma execução isso eram dezenas de spawns de `python3`, exigia Node **e** Python no ambiente e serializava JSON na fronteira entre as duas linguagens.
+
+A justificativa original ("simplicidade e performance") não se sustentava: duas linguagens não são simples, e spawnar um processo por query é o jeito mais lento de falar com SQLite. A migração para Python puro elimina o subprocesso por operação, remove Node/pnpm do CI e deixa **uma linguagem só** para manter.
+
+> Os hashes do cache continuam sendo MD5 utf-8 do conteúdo — idênticos aos da versão Node — então o `data/cache.db` já existente **permanece válido** após a migração.
 
 ---
 
 ## 🛠️ Instalação
 
 ### Pré-requisitos
-- [Node.js](https://nodejs.org/) (versão 18 ou superior recomendada)
+- [Python 3](https://www.python.org/) (3.10+ recomendado)
 - Chave de API do Google Gemini
 - Bot do Telegram (ou canal) configurado
 - Instância da Evolution API para WhatsApp (opcional)
@@ -25,43 +50,49 @@ Este projeto é um script automatizado que coleta os posts mais populares do **H
 
 1. **Instale as dependências**:
    ```bash
-   npm install
+   pip install -r requirements.txt
    ```
 
 2. **Configure as variáveis de ambiente**:
-   Copie o arquivo de exemplo:
    ```bash
    cp .env.example .env
    ```
-   Abra o arquivo `.env` e preencha com suas credenciais do Telegram, Gemini e Evolution API.
+   Abra o `.env` e preencha com suas credenciais do Telegram, Gemini e Evolution API.
 
 ---
 
-## 🏃‍♂️ Como Executar
-
-Para rodar o script manualmente:
+## 🏃 Como Executar
 
 ```bash
-npm start
+python hn_summary.py
 ```
 
-### 📅 Automatização (Cron / GitHub Actions)
+### ✅ Testes
 
-Você pode agendar a execução deste script para receber os resumos diariamente. 
-
-Exemplo de **Cron** para rodar todos os dias às 08:00:
 ```bash
-0 8 * * * cd /caminho/para/resumo_hacker_news && npm start >> logs.txt 2>&1
+python -m unittest
 ```
+
+### 📅 Automatização (GitHub Actions)
+
+O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db` (o cache é versionado de propósito para persistir entre execuções).
 
 ---
 
-## 📦 Dependências Principais
+## ⚙️ Variáveis de Ambiente
 
-- `axios`: Para requisições HTTP.
-- `@google/generative-ai`: Integração com o Google Gemini.
-- `cheerio`: Para raspagem e extração de texto dos links.
-- `dotenv`: Gerenciamento de variáveis de ambiente.
+| Variável                 | Obrigatória | Descrição                                    |
+| ------------------------ | ----------- | -------------------------------------------- |
+| `GEMINI_API_KEY`         | sim         | Chave da API do Google Gemini                |
+| `TELEGRAM_BOT_TOKEN`     | p/ Telegram | Token do bot                                 |
+| `TELEGRAM_CHAT_ID`       | p/ Telegram | ID do chat de destino                        |
+| `GEMINI_MODEL`           | não         | Default: `gemini-2.5-flash`                  |
+| `CACHE_TTL_DAYS`         | não         | TTL do cache em dias (default 7; `0` desliga)|
+| `COMMENT_REFRESH_GROWTH` | não         | Crescimento de comentários que re-resume (default `0.25` = 25%) |
+| `EVOLUTION_API_URL`      | p/ WhatsApp | Base URL da Evolution API                    |
+| `EVOLUTION_API_KEY`      | p/ WhatsApp | Chave de autenticação                        |
+| `EVOLUTION_API_INSTANCE` | p/ WhatsApp | Instância do WhatsApp                        |
+| `WHATSAPP_NUMBER`        | p/ WhatsApp | Número ou JID de grupo                       |
 
 ---
 *Desenvolvido para facilitar sua leitura diária de notícias tech!*

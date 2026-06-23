@@ -1,10 +1,16 @@
 schema: spec-driven
 
 context: |
-  Tech stack: Node.js (ES modules), axios, cheerio, @google/generative-ai
-  Architecture: Backend scripts for fetching, summarizing, and sending Hacker News posts
-  Testing: Not found
+  Tech stack: Python 3 (single language), requests, beautifulsoup4, google-genai, python-dotenv
+  Architecture: Python pipeline that fetches, summarizes (Gemini structured JSON),
+    caches (SQLite, direct sqlite3 — no subprocess), and sends Hacker News digests
+    to Telegram and WhatsApp.
+  Testing: stdlib unittest (python -m unittest); test_hn_summary.py
   Style: Not found
+  History: Originally a Node.js orchestrator that shelled out to a Python helper
+    (cache_helper.py) via execFileSync for every SQLite op — spawning a process per
+    cache read/write. Migrated to single-language Python to remove that coupling and
+    the per-operation subprocess overhead.
 
 strict_tdd: false
 
