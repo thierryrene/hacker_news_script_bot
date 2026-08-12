@@ -14,6 +14,8 @@ import sqlite3
 import hashlib
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'cache.db')
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+LAST_RUN_PATH = os.path.join(DATA_DIR, 'last_run.json')
 
 
 def _ttl_days():
@@ -59,14 +61,16 @@ def init_db():
           post_id INTEGER PRIMARY KEY,
           raw_comments_hash TEXT,
           summary TEXT,
+          tone TEXT,
           descendants INTEGER,
           created_at TEXT
         )
     ''')
-    # Migração: bancos antigos não têm a coluna descendants. Adiciona se faltar.
     existing_cols = [r[1] for r in cur.execute('PRAGMA table_info(comment_summaries)').fetchall()]
     if 'descendants' not in existing_cols:
         cur.execute('ALTER TABLE comment_summaries ADD COLUMN descendants INTEGER')
+    if 'tone' not in existing_cols:
+        cur.execute('ALTER TABLE comment_summaries ADD COLUMN tone TEXT')
     conn.commit()
     conn.close()
 
@@ -128,24 +132,20 @@ def save_post_summary(post_id, title, url, text_hash, summary_obj):
 
 def get_comment_summary(post_id, current_descendants):
     """Reusa o resumo de comentários cacheado, a menos que a discussão tenha
-    crescido materialmente (medido por `descendants`) ou o TTL tenha expirado.
-
-    Substitui a antiga chave por hash do texto, que sofria churn toda vez que o
-    HN reordenava o top-5 de comentários — invalidando o cache sem que a discussão
-    tivesse de fato mudado."""
+    crescido materialmente (medido por `descendants`) ou o TTL tenha expirado."""
     conn = _connect()
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     ttl = _ttl_days()
     if ttl > 0:
         cur.execute(
-            "SELECT summary, descendants FROM comment_summaries "
+            "SELECT summary, tone, descendants FROM comment_summaries "
             "WHERE post_id = ? AND created_at > datetime('now', ?)",
             (post_id, f'-{ttl} days'),
         )
     else:
         cur.execute(
-            'SELECT summary, descendants FROM comment_summaries WHERE post_id = ?',
+            'SELECT summary, tone, descendants FROM comment_summaries WHERE post_id = ?',
             (post_id,),
         )
     row = cur.fetchone()
@@ -154,25 +154,45 @@ def get_comment_summary(post_id, current_descendants):
         return None
 
     cached_descendants = row['descendants']
-    # Linha antiga sem baseline de descendants → força um re-resumo único.
     if cached_descendants is None:
         return None
 
     current = current_descendants or 0
     growth = (current - cached_descendants) / max(cached_descendants, 1)
     if growth >= _comment_growth_threshold():
-        return None  # discussão cresceu de forma relevante; vale re-resumir
-    return row['summary']
+        return None
+    return {
+        'summary': row['summary'] or '',
+        'tone': row['tone'] or 'neutro',
+    }
 
 
-def save_comment_summary(post_id, summary, descendants):
+def save_comment_summary(post_id, summary, descendants, tone='neutro'):
     conn = _connect()
     cur = conn.cursor()
     cur.execute(
         '''INSERT OR REPLACE INTO comment_summaries
-           (post_id, raw_comments_hash, summary, descendants, created_at)
-           VALUES (?, NULL, ?, ?, datetime('now'))''',
-        (post_id, summary or '', descendants),
+           (post_id, raw_comments_hash, summary, tone, descendants, created_at)
+           VALUES (?, NULL, ?, ?, ?, datetime('now'))''',
+        (post_id, summary or '', tone or 'neutro', descendants),
     )
     conn.commit()
     conn.close()
+
+
+def load_last_run_post_ids():
+    """Retorna o conjunto de post_ids da execução anterior, ou vazio."""
+    if not os.path.isfile(LAST_RUN_PATH):
+        return set()
+    try:
+        with open(LAST_RUN_PATH, encoding='utf-8') as fh:
+            data = json.load(fh)
+        return set(data.get('post_ids') or [])
+    except (OSError, json.JSONDecodeError):
+        return set()
+
+
+def save_last_run(post_ids):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(LAST_RUN_PATH, 'w', encoding='utf-8') as fh:
+        json.dump({'post_ids': list(post_ids)}, fh, ensure_ascii=False)

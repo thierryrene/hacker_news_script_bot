@@ -6,8 +6,10 @@ Este projeto é um pipeline automatizado em **Python** que coleta os posts mais 
 
 - **Coleta Inteligente**: Filtra os top stories do Hacker News com pontuação superior a 50 pontos.
 - **Extração de Conteúdo**: Lê o conteúdo das páginas dos links e os comentários da comunidade para dar mais contexto à IA.
-- **Resumos com IA**: Usa o Google Gemini com schema JSON estruturado (emoji + TL;DR por post, e um resumo da voz da comunidade).
+- **Resumos com IA**: Usa o Google Gemini com schema JSON estruturado (emoji + TL;DR + tags por post, tom da comunidade e intro editorial do dia).
 - **Cache SQLite**: Evita reprocessar conteúdo idêntico; com TTL configurável.
+- **Metadados ricos**: Domínio, contagem de comentários, idade do post, ranking e sinal 🆕/🔄 vs. ontem.
+- **Agrupamento por tema**: Posts organizados por tags (IA, Segurança, Startups…).
 - **Multi-plataforma**:
   - **Telegram**: Mensagens em HTML.
   - **WhatsApp**: Via Evolution API (conversão automática para markdown e encurtador de links).
@@ -75,7 +77,7 @@ python -m unittest
 
 ### 📅 Automatização (GitHub Actions)
 
-O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db` (o cache é versionado de propósito para persistir entre execuções).
+O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db` e `data/last_run.json`.
 
 ---
 
