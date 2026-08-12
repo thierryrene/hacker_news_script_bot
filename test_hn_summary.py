@@ -6,8 +6,6 @@ Rodar: python -m unittest
 import os
 import unittest
 
-# call_gemini_json injeta `_generate_fn`, então os testes rodam sem rede.
-# A GEMINI_API_KEY é exigida no import do módulo; injeta um valor fake.
 os.environ.setdefault('GEMINI_API_KEY', 'test-key')
 
 from datetime import datetime, timezone
@@ -16,8 +14,6 @@ import hn_summary
 
 
 def _generator(steps):
-    """Retorna uma função geradora fake que percorre `steps` em ordem.
-    Um item Exception é levantado; uma string é retornada como texto bruto."""
     state = {'i': 0}
 
     def generate(_prompt, _schema):
@@ -30,29 +26,29 @@ def _generator(steps):
     return generate, state
 
 
-class CallGeminiJsonTests(unittest.TestCase):
+class CallLlmJsonTests(unittest.TestCase):
     def test_parses_valid_json_first_try(self):
         gen, state = _generator(['[{"emoji": "🚀"}]'])
-        out = hn_summary.call_gemini_json('p', {}, base_delay_s=0, _generate_fn=gen)
+        out = hn_summary.call_llm_json('p', {}, base_delay_s=0, _generate_fn=gen)
         self.assertEqual(out, [{'emoji': '🚀'}])
         self.assertEqual(state['i'], 1)
 
     def test_retries_on_transient_error(self):
         gen, state = _generator([RuntimeError('503 indisponível'), '{"ok": true}'])
-        out = hn_summary.call_gemini_json('p', {}, retries=3, base_delay_s=0, _generate_fn=gen)
+        out = hn_summary.call_llm_json('p', {}, retries=3, base_delay_s=0, _generate_fn=gen)
         self.assertEqual(out, {'ok': True})
         self.assertEqual(state['i'], 2)
 
     def test_retries_on_non_json(self):
         gen, state = _generator(['isto não é json', '[]'])
-        out = hn_summary.call_gemini_json('p', {}, retries=2, base_delay_s=0, _generate_fn=gen)
+        out = hn_summary.call_llm_json('p', {}, retries=2, base_delay_s=0, _generate_fn=gen)
         self.assertEqual(out, [])
         self.assertEqual(state['i'], 2)
 
     def test_raises_after_exhausting_retries(self):
         gen, state = _generator([RuntimeError('fail 1'), RuntimeError('fail 2')])
         with self.assertRaises(RuntimeError):
-            hn_summary.call_gemini_json('p', {}, retries=2, base_delay_s=0, _generate_fn=gen)
+            hn_summary.call_llm_json('p', {}, retries=2, base_delay_s=0, _generate_fn=gen)
         self.assertEqual(state['i'], 2)
 
 

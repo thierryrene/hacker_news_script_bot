@@ -6,7 +6,8 @@ Este projeto é um pipeline automatizado em **Python** que coleta os posts mais 
 
 - **Coleta Inteligente**: Filtra os top stories do Hacker News com pontuação superior a 50 pontos.
 - **Extração de Conteúdo**: Lê o conteúdo das páginas dos links e os comentários da comunidade para dar mais contexto à IA.
-- **Resumos com IA**: Usa o Google Gemini com schema JSON estruturado (emoji + TL;DR + tags por post, tom da comunidade e intro editorial do dia).
+- **Resumos com IA**: Usa LLM configurável (Gemini, OpenRouter, Claude, OpenAI) com schema JSON estruturado.
+- **Menu `/menu` no Telegram**: Troca de provedor/modelo via botões inline, sem editar código.
 - **Cache SQLite**: Evita reprocessar conteúdo idêntico; com TTL configurável.
 - **Metadados ricos**: Domínio, contagem de comentários, idade do post, ranking e sinal 🆕/🔄 vs. ontem.
 - **Agrupamento por tema**: Posts organizados por tags (IA, Segurança, Startups…).
@@ -69,6 +70,16 @@ A justificativa original ("simplicidade e performance") não se sustentava: duas
 python hn_summary.py
 ```
 
+### 🤖 Bot de configuração (Telegram)
+
+Para ajustar modelo e disparar digest manualmente via `/menu`:
+
+```bash
+python telegram_bot.py
+```
+
+Comandos: `/menu`, `/config`, `/start`. Apenas `TELEGRAM_CHAT_ID` ou IDs em `TELEGRAM_ADMIN_IDS` podem usar.
+
 ### ✅ Testes
 
 ```bash
@@ -77,7 +88,7 @@ python -m unittest
 
 ### 📅 Automatização (GitHub Actions)
 
-O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db` e `data/last_run.json`.
+O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db`, `data/last_run.json` e `data/settings.json`.
 
 ---
 
@@ -85,16 +96,21 @@ O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00
 
 | Variável                 | Obrigatória | Descrição                                    |
 | ------------------------ | ----------- | -------------------------------------------- |
-| `GEMINI_API_KEY`         | sim         | Chave da API do Google Gemini                |
+| `GEMINI_API_KEY`         | p/ Gemini   | Chave da API do Google Gemini                |
+| `OPENROUTER_API_KEY`     | p/ OpenRouter | Chave OpenRouter                           |
+| `ANTHROPIC_API_KEY`      | p/ Claude   | Chave Anthropic                              |
+| `OPENAI_API_KEY`         | p/ OpenAI   | Chave OpenAI / Codex                         |
 | `TELEGRAM_BOT_TOKEN`     | p/ Telegram | Token do bot                                 |
 | `TELEGRAM_CHAT_ID`       | p/ Telegram | ID do chat de destino                        |
-| `GEMINI_MODEL`           | não         | Default: `gemini-2.5-flash`                  |
+| `TELEGRAM_ADMIN_IDS`     | não         | IDs autorizados no `/menu` (vírgula)         |
 | `CACHE_TTL_DAYS`         | não         | TTL do cache em dias (default 7; `0` desliga)|
 | `COMMENT_REFRESH_GROWTH` | não         | Crescimento de comentários que re-resume (default `0.25` = 25%) |
 | `EVOLUTION_API_URL`      | p/ WhatsApp | Base URL da Evolution API                    |
 | `EVOLUTION_API_KEY`      | p/ WhatsApp | Chave de autenticação                        |
 | `EVOLUTION_API_INSTANCE` | p/ WhatsApp | Instância do WhatsApp                        |
 | `WHATSAPP_NUMBER`        | p/ WhatsApp | Número ou JID de grupo                       |
+
+O provedor e modelo ativos ficam em `data/settings.json` (alterável via `/menu` ou manualmente).
 
 ---
 *Desenvolvido para facilitar sua leitura diária de notícias tech!*

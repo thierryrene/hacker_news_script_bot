@@ -1,12 +1,11 @@
 """Pipeline diário do Hacker News.
 
-Busca os top stories, extrai conteúdo e comentários, resume com o Gemini
+Busca os top stories, extrai conteúdo e comentários, resume com LLM
 (saída JSON estruturada), cacheia em SQLite e distribui via Telegram e WhatsApp.
 """
 
 import os
 import re
-import json
 import time
 from datetime import datetime, timezone
 from urllib.parse import urlparse
@@ -17,22 +16,15 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 import cache
+import llm
+import settings as app_settings
 import telegram
 import evolution
 
 load_dotenv(override=True)
 
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
-
-if not GEMINI_API_KEY:
-    print('❌ Erro: GEMINI_API_KEY não encontrada no arquivo .env')
-    raise SystemExit(1)
-
-MODEL_NAME = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-
-_client = None
 
 TONE_EMOJI = {
     'entusiasmado': '😊',
@@ -61,14 +53,6 @@ TAG_EMOJI = {
 }
 
 POST_SEPARATOR = '===POST_SEPARATOR==='
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        from google import genai
-        _client = genai.Client(api_key=GEMINI_API_KEY)
-    return _client
 
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -129,35 +113,11 @@ INTRO_SCHEMA = {
 }
 
 
-def _generate(prompt, schema):
-    from google.genai import types
-    response = _get_client().models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type='application/json',
-            response_schema=schema,
-        ),
+def call_llm_json(prompt, schema, retries=3, base_delay_s=1.0, _generate_fn=None):
+    """Compat wrapper — delega para llm.call_llm_json."""
+    return llm.call_llm_json(
+        prompt, schema, retries=retries, base_delay_s=base_delay_s, _generate_fn=_generate_fn,
     )
-    return (response.text or '').strip()
-
-
-def call_gemini_json(prompt, schema, retries=3, base_delay_s=1.0, _generate_fn=None):
-    generate = _generate_fn or _generate
-    last_err = None
-    for attempt in range(1, retries + 1):
-        try:
-            text = generate(prompt, schema)
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError as parse_err:
-                raise ValueError(f'Resposta não-JSON do Gemini: {parse_err}')
-        except Exception as err:
-            last_err = err
-            print(f'⚠️ Gemini tentativa {attempt}/{retries} falhou: {err}')
-            if attempt < retries:
-                time.sleep(base_delay_s * 2 ** (attempt - 1))
-    raise last_err
 
 
 def chunk_telegram_message(full_msg, separator=POST_SEPARATOR, max_len=3900):
@@ -345,7 +305,7 @@ def get_hacker_news_top():
         return []
 
 
-def summarize_comments_with_gemini(posts_with_comments):
+def summarize_comments(posts_with_comments):
     try:
         prompt = (
             'Você é um analista de comunidade discutindo links de tecnologia.\n'
@@ -359,13 +319,13 @@ def summarize_comments_with_gemini(posts_with_comments):
                 f"Título: {post['title']}\n"
                 f"Comentários Brutos: {post.get('rawComments') or 'Sem comentários.'}\n"
             )
-        return call_gemini_json(prompt, COMMENT_SCHEMA)
+        return call_llm_json(prompt, COMMENT_SCHEMA)
     except Exception as err:
         print(f'❌ Erro no resumo de comentários: {err}')
         return []
 
 
-def summarize_all_with_gemini(posts):
+def summarize_posts(posts):
     try:
         prompt = (
             'Você é um sumarizador especialista de notícias tech. Recebi posts do Hacker News.\n'
@@ -379,9 +339,9 @@ def summarize_all_with_gemini(posts):
                 f"URL: {post.get('url') or 'N/A'}\n"
                 f"Conteúdo extraído: {post.get('fetchedText') or post.get('text') or 'Apenas o título está disponível.'}\n"
             )
-        return call_gemini_json(prompt, POST_SCHEMA)
+        return call_llm_json(prompt, POST_SCHEMA)
     except Exception as err:
-        print(f'❌ Erro no Gemini ao resumir os posts: {err}')
+        print(f'❌ Erro no LLM ao resumir os posts: {err}')
         return []
 
 
@@ -396,7 +356,7 @@ def summarize_daily_intro(posts, summaries):
             summary = summaries[index] or {}
             tags = ', '.join(summary.get('tags') or []) or 'sem tag'
             prompt += f"- {post['title']} ({post['score']} pts, tags: {tags})\n"
-        result = call_gemini_json(prompt, INTRO_SCHEMA)
+        result = call_llm_json(prompt, INTRO_SCHEMA)
         return (result or {}).get('headline', '').strip()
     except Exception as err:
         print(f'⚠️ Erro no intro editorial: {err}')
@@ -480,6 +440,14 @@ def build_grouped_message(intro, novelty, digest_items):
 
 def main():
     cache.init_db()
+    cfg = app_settings.load_settings()
+    provider_label, model_label = app_settings.current_llm_summary()
+    ok, err = app_settings.validate_provider_api_key(cfg['llm_provider'])
+    if not ok:
+        print(f'❌ Erro: {err}')
+        raise SystemExit(1)
+
+    print(f'🤖 LLM: {provider_label} · {model_label} ({cfg["llm_model"]})')
     previous_ids = cache.load_last_run_post_ids()
 
     print('📊 Buscando melhores posts do Hacker News...')
@@ -508,7 +476,7 @@ def main():
     with ThreadPoolExecutor(max_workers=10) as executor:
         list(executor.map(load_comments, posts))
 
-    print('💭 Resumindo opiniões da comunidade com Gemini (JSON)...')
+    print('💭 Resumindo opiniões da comunidade com LLM (JSON)...')
     comment_summaries = [None] * len(posts)
     uncached_comment_posts = []
     comment_cached_indexes = []
@@ -523,8 +491,8 @@ def main():
             comment_cached_indexes.append(i)
 
     if uncached_comment_posts:
-        print(f'- Chamando Gemini para resumir comentários de {len(uncached_comment_posts)} posts...')
-        new_comment_summaries = summarize_comments_with_gemini(uncached_comment_posts)
+        print(f'- Chamando LLM para resumir comentários de {len(uncached_comment_posts)} posts...')
+        new_comment_summaries = summarize_comments(uncached_comment_posts)
         has_valid = bool(new_comment_summaries)
 
         for j, post in enumerate(uncached_comment_posts):
@@ -543,7 +511,7 @@ def main():
                     post['id'], summary_text, post.get('descendants'), tone,
                 )
 
-    print('📝 Enviando para resumo estruturado em lote no Gemini (JSON)...')
+    print('📝 Enviando para resumo estruturado em lote no LLM (JSON)...')
     summaries = [None] * len(posts)
     uncached_posts = []
     post_cached_indexes = []
@@ -559,8 +527,8 @@ def main():
             post_cached_indexes.append(i)
 
     if uncached_posts:
-        print(f'- Chamando Gemini para resumir {len(uncached_posts)} posts...')
-        new_summaries = summarize_all_with_gemini(uncached_posts)
+        print(f'- Chamando LLM para resumir {len(uncached_posts)} posts...')
+        new_summaries = summarize_posts(uncached_posts)
         has_valid = bool(new_summaries)
 
         for j, post in enumerate(uncached_posts):
