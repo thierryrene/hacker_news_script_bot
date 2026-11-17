@@ -90,6 +90,8 @@ python -m unittest
 
 O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db`, `data/last_run.json` e `data/settings.json`.
 
+O workflow declara `contents: write` para permitir a gravação do cache. As execuções são serializadas para evitar conflitos entre o disparo diário e o manual. Se o GitHub desativar o agendamento por inatividade, reative o workflow na aba Actions e confira se a etapa de commit e push termina com sucesso.
+
 ---
 
 ## ⚙️ Variáveis de Ambiente
