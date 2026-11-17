@@ -33,7 +33,11 @@ def _generate_gemini(prompt, schema, model):
         raise RuntimeError('GEMINI_API_KEY não configurada.')
 
     from google import genai
-    client = genai.Client(api_key=api_key)
+    # O modo JSON com schema exige v1beta; não depender do default do SDK.
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(api_version='v1beta'),
+    )
     response = client.models.generate_content(
         model=model,
         contents=prompt,
