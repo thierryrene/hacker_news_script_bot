@@ -86,11 +86,21 @@ Comandos: `/menu`, `/config`, `/start`. Apenas `TELEGRAM_CHAT_ID` ou IDs em `TEL
 python -m unittest
 ```
 
-### 📅 Automatização (GitHub Actions)
+### 📅 Automatização no servidor
 
-O workflow `.github/workflows/summary.yml` roda diariamente às 11:00 UTC (08:00 BRT) e também sob demanda (`workflow_dispatch`). Ele instala as deps Python, executa `python hn_summary.py` e commita `data/cache.db`, `data/last_run.json` e `data/settings.json`.
+A rotina roda neste servidor com `systemd`, diariamente às **08:00 em America/Sao_Paulo**. O agendamento do GitHub Actions foi desativado. Credenciais ficam no `.env` local com permissão `600`; cache e estado ficam em `data/`, sem commits automáticos.
 
-O workflow declara `contents: write` para permitir a gravação do cache. As execuções são serializadas para evitar conflitos entre o disparo diário e o manual. Se o GitHub desativar o agendamento por inatividade, reative o workflow na aba Actions e confira se a etapa de commit e push termina com sucesso.
+Unidades versionadas em `deploy/` (caminho de instalação: `/root/hacker_news_script_bot`):
+
+```bash
+sudo install -m 644 deploy/hacker-news-summary.service deploy/hacker-news-summary.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now hacker-news-summary.timer
+systemctl list-timers hacker-news-summary.timer
+journalctl -u hacker-news-summary.service -n 100 --no-pager
+```
+
+Execução manual: `sudo systemctl start hacker-news-summary.service`. O timer recupera uma execução perdida durante desligamento do servidor (`Persistent=true`). Não há reinício automático do digest inteiro, para evitar duplicar mensagens já entregues. O Telegram repete respostas HTTP transitórias; falhas finais de entrega fazem o serviço terminar com erro. O WhatsApp precisa de uma instância conectada na Evolution API.
 
 ---
 

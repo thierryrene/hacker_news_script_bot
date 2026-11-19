@@ -1,13 +1,24 @@
 """Wrapper da API do Telegram (Bot API)."""
 
 import requests
+import time
 
 
 def _api(token, method, payload=None):
     url = f'https://api.telegram.org/bot{token}/{method}'
-    resp = requests.post(url, json=payload or {}, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+    for attempt in range(4):
+        resp = requests.post(url, json=payload or {}, timeout=30)
+        if resp.status_code in (429, 500, 502, 503, 504) and attempt < 3:
+            delay = 2 ** (attempt + 1)
+            if resp.status_code == 429:
+                delay = resp.json().get('parameters', {}).get('retry_after', delay)
+            time.sleep(min(max(float(delay), 1), 120))
+            continue
+        resp.raise_for_status()
+        result = resp.json()
+        if not result.get('ok'):
+            raise RuntimeError(f"Telegram: {result.get('description', 'resposta sem sucesso')}")
+        return result
 
 
 def send_message(token, chat_id, text, parse_mode='HTML', disable_web_page_preview=True, reply_markup=None):

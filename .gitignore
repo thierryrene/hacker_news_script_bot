@@ -6,5 +6,6 @@ venv/
 .DS_Store
 *.log
 .history/
-# data/*.db  <-- Comentado para permitir persistência do cache no GitHub Actions
+data/*.db
+data/last_run.json
 data/*.sqlite

@@ -1,0 +1,18 @@
+[Unit]
+Description=Resumo diario Hacker News para Telegram e WhatsApp
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/hacker_news_script_bot
+ExecStart=/root/hacker_news_script_bot/.venv/bin/python -u /root/hacker_news_script_bot/hn_summary.py
+TimeoutStartSec=20min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/root/hacker_news_script_bot/data
+Environment=PYTHONDONTWRITEBYTECODE=1
+StandardOutput=journal
+StandardError=journal

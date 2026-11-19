@@ -2,6 +2,7 @@
 
 import os
 import re
+from html import unescape
 
 import requests
 
@@ -37,7 +38,7 @@ def html_to_whatsapp(text):
         except requests.RequestException:
             formatted = formatted.replace(link['full'], f"{link['label']}: {link['url']}")
 
-    return re.sub(r'<[^>]*>', '', formatted)
+    return unescape(re.sub(r'<[^>]*>', '', formatted))
 
 
 def send_message(text):
@@ -51,6 +52,15 @@ def send_message(text):
         return None
 
     url = f'{url_base}/message/sendText/{instance}'
+    state = requests.get(
+        f'{url_base.rstrip("/")}/instance/connectionState/{instance}',
+        headers={'apikey': api_key},
+        timeout=30,
+    )
+    if not state.ok:
+        raise RuntimeError(f'Evolution API: HTTP {state.status_code} ao consultar conexão')
+    if state.json().get('instance', {}).get('state') != 'open':
+        raise RuntimeError('WhatsApp desconectado: reconecte a instância na Evolution API.')
     formatted_text = html_to_whatsapp(text)
 
     try:
@@ -72,5 +82,4 @@ def send_message(text):
     except requests.RequestException as error:
         body = getattr(error.response, 'text', None) if error.response is not None else None
         print(f'❌ Erro ao enviar mensagem Evolution API: {body or error}')
-        # Não lança erro para não quebrar o fluxo principal se o WhatsApp falhar
-        return None
+        raise RuntimeError(f'Evolution API: HTTP {error.response.status_code if error.response is not None else "indisponível"}') from None

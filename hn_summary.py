@@ -7,6 +7,7 @@ Busca os top stories, extrai conteúdo e comentários, resume com LLM
 import os
 import re
 import time
+from html import escape
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
@@ -364,10 +365,10 @@ def summarize_daily_intro(posts, summaries):
 
 
 def format_post_block(post, rank, summary, comment_obj, is_new):
-    emoji_str = (summary or {}).get('emoji') or '📰'
-    tldr_str = (summary or {}).get('tldr') or 'Não foi possível gerar um resumo detalhado.'
+    emoji_str = escape((summary or {}).get('emoji') or '📰')
+    tldr_str = escape((summary or {}).get('tldr') or 'Não foi possível gerar um resumo detalhado.')
     tags = (summary or {}).get('tags') or []
-    comment_summary = (comment_obj or {}).get('summary', '').strip()
+    comment_summary = escape((comment_obj or {}).get('summary', '').strip())
     comment_tone = (comment_obj or {}).get('tone', 'neutro')
     tone_emoji = TONE_EMOJI.get(comment_tone, '😐')
 
@@ -375,7 +376,7 @@ def format_post_block(post, rank, summary, comment_obj, is_new):
     type_prefix = get_type_prefix(post)
     badge = get_score_badge(post['score'])
     title = clean_title(post['title'])
-    display_title = f'{type_prefix}{title}' if type_prefix else title
+    display_title = escape(f'{type_prefix}{title}' if type_prefix else title)
 
     domain = extract_domain(post.get('url'))
     age = format_time_ago(post.get('time'))
@@ -389,12 +390,13 @@ def format_post_block(post, rank, summary, comment_obj, is_new):
         meta_bits.append(age)
     if read_time > 0:
         meta_bits.append(f'⏱️ {read_time} min')
-    meta_header = ' · '.join(bit for bit in meta_bits if bit)
+    meta_header = escape(' · '.join(bit for bit in meta_bits if bit))
 
     access_url = post.get('url') or f"https://news.ycombinator.com/item?id={post['id']}"
+    access_url = escape(access_url, quote=True)
     tag_line = ''
     if tags:
-        tag_line = '  🏷️ ' + ' · '.join(normalize_tag(t) for t in tags[:3]) + '\n'
+        tag_line = '  🏷️ ' + escape(' · '.join(normalize_tag(t) for t in tags[:3])) + '\n'
 
     block = (
         f'{new_marker}{badge} <b>{display_title}</b> ({post["score"]} pts)\n'
@@ -412,7 +414,7 @@ def format_post_block(post, rank, summary, comment_obj, is_new):
 def build_grouped_message(intro, novelty, digest_items):
     header = '<b>📰 HACKER NEWS - TOP STORIES 🚀</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
     if intro:
-        header += f'<i>{intro}</i>\n\n'
+        header += f'<i>{escape(intro)}</i>\n\n'
     if novelty and (novelty['new'] or novelty['returning']):
         header += f"🆕 {novelty['new']} novos · 🔄 {novelty['returning']} ainda no top\n\n"
 
@@ -424,7 +426,7 @@ def build_grouped_message(intro, novelty, digest_items):
     parts = [header]
     for tag, items in sort_tag_sections(groups):
         section_emoji = tag_section_emoji(tag)
-        parts.append(f'<b>{section_emoji} {tag}</b>\n')
+        parts.append(f'<b>{section_emoji} {escape(tag)}</b>\n')
         for item in sorted(items, key=lambda x: x['post']['score'], reverse=True):
             parts.append(format_post_block(
                 item['post'],
@@ -566,7 +568,8 @@ def main():
         })
 
     full_msg = build_grouped_message(intro, novelty, digest_items)
-    cache.save_last_run(post_ids)
+    delivery_errors = []
+    delivered = False
 
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         chunks = chunk_telegram_message(full_msg)
@@ -583,12 +586,26 @@ def main():
                 print(f"[DEBUG] Resposta API Telegram: ok={resp.get('ok')}, msg_id={msg_id}")
             except Exception as err:
                 print(f'❌ Erro envio Telegram: {err}')
+                delivery_errors.append('Telegram')
             time.sleep(0.5)
-        print('✅ Resumo enviado para o Telegram!')
+        if 'Telegram' not in delivery_errors:
+            print('✅ Resumo enviado para o Telegram!')
+            delivered = True
 
     whatsapp_msg = full_msg.replace(POST_SEPARATOR, '').strip()
-    evolution.send_message(whatsapp_msg)
-    print('✅ Resumo enviado para o WhatsApp!')
+    try:
+        if evolution.send_message(whatsapp_msg) is not None:
+            print('✅ Resumo enviado para o WhatsApp!')
+            delivered = True
+    except Exception as err:
+        print(f'❌ Erro envio WhatsApp: {err}')
+        delivery_errors.append('WhatsApp')
+    if delivered:
+        cache.save_last_run(post_ids)
+    if delivery_errors:
+        raise RuntimeError('Falha na entrega: ' + ', '.join(sorted(set(delivery_errors))))
+    if not delivered:
+        raise RuntimeError('Nenhum canal de entrega configurado.')
 
 
 if __name__ == '__main__':
