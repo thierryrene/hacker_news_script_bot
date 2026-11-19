@@ -1,0 +1,63 @@
+name: One-time encrypted server migration
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Encrypt credentials for the server
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_ADMIN_IDS: ${{ secrets.TELEGRAM_ADMIN_IDS }}
+          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          EVOLUTION_API_INSTANCE: ${{ secrets.EVOLUTION_API_INSTANCE }}
+          WHATSAPP_NUMBER: ${{ secrets.WHATSAPP_NUMBER }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          umask 077
+          cat > recipient.pem <<'CERT'
+          -----BEGIN CERTIFICATE-----
+          MIIEHTCCAoWgAwIBAgIUGWghnxzQZuv0R+VmsFYlZH4z7JAwDQYJKoZIhvcNAQEL
+          BQAwHjEcMBoGA1UEAwwTaG4tc2VydmVyLW1pZ3JhdGlvbjAeFw0yNjExMTkxMzM3
+          MzBaFw0yNjExMjExMzM3MzBaMB4xHDAaBgNVBAMME2huLXNlcnZlci1taWdyYXRp
+          b24wggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQCdEhq4KpnaJaFo+WGU
+          GvQibgLecieOrVg85ocoVQyNAWOeMoBk8Jer5AUSlKIjSxhciVAI0ZsHged0q+dg
+          adGb8Tw2RT7wtdz2h7sByQ9fqZa6oxg3Ym8nJ0wHXXm99+mvnY/lCdpmZOdw4I3z
+          NJfsdALQZ8iGZzJdc+X+itlwYXSThRxoNp1xI8nH6e6VxKbDRoSv3CBhWsJMVYzE
+          XuduB7Wlke7/zNIkEuKuuQXDaHDcTSelnRlAFFwtTGddejT3geFohUBtnA8Ovh9z
+          gAJd6b5sulD2gAtt8HlzOi+oM67XXvuwuCAFfhiBGOXIw533QJT3ydfGcA3+NOJm
+          djKXcH4LPL7iPtPklmjs3xTVe2IT5fYXPOoqgdA1Ks7SYvhHCZVFbPRuNZlgTfGD
+          YpITRqUw+fbOQeBOzKGIoyOABRd7Sl68HzyC/+ooQmIyhvFsFU+dt2a8aYp7N2i7
+          hgt6GZhBkYD9MZxGuZVm5Nv7abaxTlAC7UX7Bghelh9dAuUCAwEAAaNTMFEwHQYD
+          VR0OBBYEFIZzFaQaXXvKhw2GMP3C3dIlqltRMB8GA1UdIwQYMBaAFIZzFaQaXXvK
+          hw2GMP3C3dIlqltRMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggGB
+          AExliQsE6SHcenzqirOPF2xRIv5tTw0hLifbn8FXBQmuLmxJMoQinkYJCAjueljD
+          Wl8RzdPM1GDR2kbRYcUTLJVoOQwyuFBrqOJZ1LB/c/6Hrkm7vYjBQPiJjq7QV8xf
+          UJ61mWWhw0HuXoWJ+3UcL0wX1crJma9rIQKLrbRz7VzWmji1tLlfzt1Q0D68DFhp
+          BtQKrb1xXGNFwvRGeGL+N7Ha/zVDITm1MTBL/wPtKqbXqt9qSXRrVnow3z+ES0db
+          c4sqDnCWniNTsv/RqDrTUuUM5GM31wp89pM7Er67uJJFQCDTxs3ksd0pQQd9vfMW
+          DIEtR4Hr/1fA1w7WqX1bQXJX8eAJtLCTj2Nx+vR9rZvnbmMZJz3Sagp5oJ1zxHJ1
+          Zt+rYBF9V+2R2puTZ5YqpozNWEcaA1D9zEOTzBMGJRTTq7ELJ7ybKU9khnFQiLb6
+          YsGDTbNkXe5jW5BKmhZimM75FsFRUGgyDD5uycUkQcbW1J1gi1cdyUfnO9x9Jcvy
+          MA==
+          -----END CERTIFICATE-----
+          CERT
+          python3 - <<'PYCODE'
+          import os, json
+          from pathlib import Path
+          keys = ['GEMINI_API_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'TELEGRAM_ADMIN_IDS', 'EVOLUTION_API_URL', 'EVOLUTION_API_KEY', 'EVOLUTION_API_INSTANCE', 'WHATSAPP_NUMBER', 'OPENROUTER_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY']
+          Path('credentials.env').write_text(''.join(k + '=' + json.dumps(os.environ.get(k, '')) + '\n' for k in keys))
+          PYCODE
+          openssl cms -encrypt -binary -aes256 -in credentials.env -out credentials.enc -outform DER recipient.pem
+          rm credentials.env
+      - uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-server-credentials
+          path: credentials.enc
+          retention-days: 1
